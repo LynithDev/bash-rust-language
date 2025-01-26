@@ -89,7 +89,29 @@ pub fn tokenize(code: String) -> EngineResult<TokenList> {
 
                     '"' => TokenType::String(string(&mut cursor, &mut chars)?),
 
-                    _ => get_word_token_type(&mut cursor, &mut chars, char)?,
+                    _ => {
+                        let keyword = collect_until(&mut cursor, &mut chars, &[' ', '\t', '\n', '\0', '\r']).unwrap_or(String::new());
+                        let keyword = format!("{char}{keyword}");
+
+                        match keyword.as_str() {
+                            "var" => TokenType::Var,
+                            "fn" => TokenType::Function,
+                            "true" => TokenType::Boolean(true),
+                            "false" => TokenType::Boolean(false),
+
+                            _ => {
+                                // If we haven't found a token, it most likely 
+                                // means that its an identifier of some sort.
+
+                                // TODO: Figure out better approach for this
+                                if let Ok(int) = keyword.parse::<isize>() {
+                                    TokenType::Integer(int)
+                                } else {
+                                    TokenType::Identifier(keyword)
+                                }
+                            }
+                        }
+                    },
                 }
             });
         }
@@ -106,30 +128,6 @@ pub fn tokenize(code: String) -> EngineResult<TokenList> {
     });
 
     Ok(tokens)
-}
-
-fn get_word_token_type(cursor: &mut Cursor, chars: &mut CharIterator, char: char) -> EngineResult<TokenType> {
-    let keyword = collect_until(cursor, chars, &[' ', '\t', '\n', '\0', '\r']).unwrap_or(String::new());
-    let keyword = format!("{char}{keyword}");
-
-    Ok(match keyword.as_str() {
-        "var" => TokenType::Var,
-        "fn" => TokenType::Function,
-        "true" => TokenType::Boolean(true),
-        "false" => TokenType::Boolean(false),
-
-        _ => {
-            // If we haven't found a token, it most likely 
-            // means that its an identifier of some sort.
-
-            // TODO: Figure out better approach for this
-            if let Ok(int) = keyword.parse::<isize>() {
-                TokenType::Integer(int)
-            } else {
-                TokenType::Identifier(keyword)
-            }
-        }
-    })
 }
 
 fn string(cursor: &mut Cursor, chars: &mut CharIterator) -> EngineResult<String> {
