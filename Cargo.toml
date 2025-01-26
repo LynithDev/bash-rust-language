@@ -18,3 +18,5 @@ engine-lib = { path = "engine-lib" }
 pretty_env_logger = { workspace = true }
 log = { workspace = true }
 
+[dev-dependencies]
+pretty_assertions = "1.4.1"

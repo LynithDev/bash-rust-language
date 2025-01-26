@@ -50,7 +50,7 @@ pub enum LexerError {
     UnexpectedEnd
 }
 
-pub type CharIterator<'a> = Peekable<Chars<'a>>;
+type CharIterator<'a> = Peekable<Chars<'a>>;
 
 pub fn tokenize(code: String) -> EngineResult<TokenList> {
     let code = code.trim().to_string();

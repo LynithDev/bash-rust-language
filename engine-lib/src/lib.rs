@@ -4,7 +4,7 @@
 
 use error::EngineResult;
 
-pub(crate) mod lexer;
+pub mod lexer;
 pub mod error;
 
 #[derive(Default)]
@@ -13,7 +13,7 @@ pub struct Engine {}
 impl Engine {
     pub fn create() -> Self {
         Self {
-
+            
         }
     }
 
