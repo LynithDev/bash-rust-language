@@ -1,0 +1,20 @@
+[package]
+name = "custom-language-rust"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[workspace.dependencies]
+# logging
+pretty_env_logger = "0.5"
+log = "0.4.25"
+
+# errors
+thiserror = "2.0.11"
+
+[dependencies]
+engine-lib = { path = "engine-lib" }
+pretty_env_logger = { workspace = true }
+log = { workspace = true }
+
