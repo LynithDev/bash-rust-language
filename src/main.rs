@@ -3,9 +3,10 @@ use engine_lib::Engine;
 #[macro_use] extern crate log;
 
 const CODE: &str = r#"
-var x = 5
-var test = 15125
-var awesome = $"echo hello world"
+var test = 531
+var test2 = "lol"
+var result = $git commit -m "test"
+var res = $git(commit -m "test")
 "#;
 
 fn main() {

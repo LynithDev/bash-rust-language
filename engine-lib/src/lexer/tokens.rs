@@ -16,13 +16,15 @@ pub enum TokenType {
     MinusEqual, // '-='
     DivideEqual, // '/=,
     MultiplyEqual, // '*=',
+    NotEqual, // '!=',
+    Not, // '!'
 
     // literals
     Identifier(String),
     String(String),
     Integer(isize),
     Boolean(bool), // 'true' OR 'false'
-    ShellCommand(String), // $"........"
+    ShellCommand(String, Option<String>), // $"........"
 
     EOL,
 }

@@ -31,12 +31,12 @@ impl Cursor {
 
     pub fn string(&mut self, string: &String) {
         for char in string.chars() {
-            self.char(char);
+            self.char(&char);
         }
     }
 
-    pub fn char(&mut self, char: char) {
-        if char == '\n' {
+    pub fn char(&mut self, char: &char) {
+        if char == &'\n' {
             self.new_line();
         } else {
             self.next();
@@ -73,24 +73,49 @@ pub fn tokenize(code: String) -> EngineResult<TokenList> {
                 col: cursor.col,
                 line: cursor.line,
                 token_type: match char {
-                    '\0' | ' ' | '\t' => continue,
+                    _ if SEPARATORS.contains(&char) => continue,
 
-                    '\n' => {
+                    _ if TERMINATORS.contains(&char) => {
                         cursor.new_line();
                         TokenType::EOL
                     },
                     
-                    '=' => if_next_is(&mut cursor, &mut chars, '=', TokenType::EqualEqual, TokenType::Equal),
-                    '+' => if_next_is(&mut cursor, &mut chars, '=', TokenType::PlusEqual, TokenType::Plus),
-                    '-' => if_next_is(&mut cursor, &mut chars, '=', TokenType::MinusEqual, TokenType::Minus),
-                    '/' => if_next_is(&mut cursor, &mut chars, '=', TokenType::DivideEqual, TokenType::Divide),
-                    '*' => if_next_is(&mut cursor, &mut chars, '=', TokenType::MultiplyEqual, TokenType::Multiply),
-                    '$' if if_next_is(&mut cursor, &mut chars, '"', true, false) => TokenType::ShellCommand(string(&mut cursor, &mut chars)?),
-
+                    '=' => if_next_is(&mut cursor, &mut chars, &'=', TokenType::EqualEqual, TokenType::Equal),
+                    '+' => if_next_is(&mut cursor, &mut chars, &'=', TokenType::PlusEqual, TokenType::Plus),
+                    '-' => if_next_is(&mut cursor, &mut chars, &'=', TokenType::MinusEqual, TokenType::Minus),
+                    '/' => if_next_is(&mut cursor, &mut chars, &'=', TokenType::DivideEqual, TokenType::Divide),
+                    '*' => if_next_is(&mut cursor, &mut chars, &'=', TokenType::MultiplyEqual, TokenType::Multiply),
+                    '!' => if_next_is(&mut cursor, &mut chars, &'=', TokenType::NotEqual, TokenType::Not),
+                    
                     '"' => TokenType::String(string(&mut cursor, &mut chars)?),
 
+                    '$' => {
+                        let cmd_name = collect_until(&mut cursor, &mut chars, &[SEPARATORS, &['(']].concat())?;
+                        
+                        let arguments = match chars.peek() {
+                            Some('(') => {
+                                chars.next(); // consume (
+                                cursor.next();
+                                collect_until(&mut cursor, &mut chars, &[')']).ok()
+                            },
+                            Some(char) if SEPARATORS.contains(char) => {
+                                chars.next(); // consume the character
+                                cursor.next();
+                                collect_until(&mut cursor, &mut chars, &TERMINATORS).ok()
+                            },
+                            _ => None,
+                        };
+
+                        if arguments.is_some() {
+                            // Consume ')'
+                            next_if_eq(&mut cursor, &mut chars, &')');
+                        }
+
+                        TokenType::ShellCommand(cmd_name, arguments)
+                    }
+                    
                     _ => {
-                        let keyword = collect_until(&mut cursor, &mut chars, &[' ', '\t', '\n', '\0', '\r']).unwrap_or(String::new());
+                        let keyword = collect_until(&mut cursor, &mut chars, WHITESPACE).unwrap_or(String::new());
                         let keyword = format!("{char}{keyword}");
 
                         match keyword.as_str() {
@@ -162,11 +187,26 @@ fn collect_until(cursor: &mut Cursor, chars: &mut CharIterator, term: &[char]) -
     Ok(collector)
 }
 
-fn if_next_is<R>(cursor: &mut Cursor, chars: &mut CharIterator, char: char, r#true: R, r#false: R) -> R {
-    if chars.next_if_eq(&char).is_some() {
-        cursor.char(char);
+
+fn if_next_is<R>(cursor: &mut Cursor, chars: &mut CharIterator, char: &char, r#true: R, r#false: R) -> R {
+    if next_if_eq(cursor, chars, char) {
+        cursor.char(&char);
         r#true
     } else {
         r#false
     }
 }
+
+fn next_if_eq(cursor: &mut Cursor, chars: &mut CharIterator, char: &char) -> bool {
+    if chars.next_if_eq(char).is_some() {
+        cursor.char(char);
+        true
+    } else {
+        false
+    }
+}
+
+
+const SEPARATORS: &'static [char] = &[' ', '\t', '\0'];
+const WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\0'];
+const TERMINATORS: &'static [char] = &['\n', '\r'];
