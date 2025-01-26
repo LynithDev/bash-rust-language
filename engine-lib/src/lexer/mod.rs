@@ -29,7 +29,7 @@ impl Cursor {
         self.col += 1;
     }
 
-    pub fn string(&mut self, string: &String) {
+    pub fn string(&mut self, string: &str) {
         for char in string.chars() {
             self.char(&char);
         }
@@ -101,7 +101,7 @@ pub fn tokenize(code: String) -> EngineResult<TokenList> {
                             Some(char) if SEPARATORS.contains(char) => {
                                 chars.next(); // consume the character
                                 cursor.next();
-                                collect_until(&mut cursor, &mut chars, &TERMINATORS).ok()
+                                collect_until(&mut cursor, &mut chars, TERMINATORS).ok()
                             },
                             _ => None,
                         };
@@ -115,7 +115,7 @@ pub fn tokenize(code: String) -> EngineResult<TokenList> {
                     }
                     
                     _ => {
-                        let keyword = collect_until(&mut cursor, &mut chars, WHITESPACE).unwrap_or(String::new());
+                        let keyword = collect_until(&mut cursor, &mut chars, WHITESPACE).unwrap_or_default();
                         let keyword = format!("{char}{keyword}");
 
                         match keyword.as_str() {
@@ -190,7 +190,7 @@ fn collect_until(cursor: &mut Cursor, chars: &mut CharIterator, term: &[char]) -
 
 fn if_next_is<R>(cursor: &mut Cursor, chars: &mut CharIterator, char: &char, r#true: R, r#false: R) -> R {
     if next_if_eq(cursor, chars, char) {
-        cursor.char(&char);
+        cursor.char(char);
         r#true
     } else {
         r#false
@@ -207,6 +207,6 @@ fn next_if_eq(cursor: &mut Cursor, chars: &mut CharIterator, char: &char) -> boo
 }
 
 
-const SEPARATORS: &'static [char] = &[' ', '\t', '\0'];
-const WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\0'];
-const TERMINATORS: &'static [char] = &['\n', '\r'];
+const SEPARATORS: &[char] = &[' ', '\t', '\0'];
+const WHITESPACE: &[char] = &[' ', '\t', '\n', '\r', '\0'];
+const TERMINATORS: &[char] = &['\n', '\r'];
