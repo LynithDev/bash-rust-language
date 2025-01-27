@@ -1,7 +1,7 @@
 use engine_lib::{error::EngineResult, lexer::{Lexer, tokens::{Token, TokenType}}};
 use pretty_assertions::assert_eq;
 
-macro_rules! create_test {
+macro_rules! token_list_comparison {
     ($name:ident, $code:literal, [$($exp:expr),+]) => {
         #[test]
         fn $name() -> EngineResult<()> {
@@ -20,7 +20,21 @@ macro_rules! create_test {
     };
 }
 
-create_test!(
+macro_rules! custom_assert {
+    ($name:ident, $code:literal, ($result:ident) => $block:block) => {
+        #[test]
+        fn $name() -> EngineResult<()> {
+            let code = $code;
+
+            let mut lexer = Lexer::create(code);
+            let $result = lexer.tokenize();
+
+            $block
+        }
+    };
+}
+
+token_list_comparison!(
     basic_variable, 
     "
 
@@ -36,7 +50,7 @@ var test = 50
     ]
 );
 
-create_test!(
+token_list_comparison!(
     multiline_basic_variable,
     "
 
@@ -59,7 +73,7 @@ var my_str = \"hello world\"
     ]
 );
 
-create_test!(
+token_list_comparison!(
     multiline_shell_command_variable,
     "
 
@@ -96,4 +110,98 @@ var test4 = $echo hello world + \"lol\"
         Token { start: (4, 13), end: (4, 38), token_type: TokenType::ShellCommand(Box::from(String::from("echo")), Some(Box::from(String::from("hello world + \"lol\"")))) },
         Token { start: (4, 38), end: (5, 1), token_type: TokenType::EOL }
     ]
+);
+
+token_list_comparison!(
+    integer_parsing,
+    "51",
+    [
+        Token { start: (1, 1), end: (1, 3), token_type: TokenType::Integer(51) },
+        Token { start: (1, 3), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    negative_integer_parsing,
+    "-51",
+    [
+        Token { start: (1, 1), end: (1, 4), token_type: TokenType::Integer(-51) },
+        Token { start: (1, 4), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    binary_integer_parsing,
+    "0b110_110",
+    [
+        Token { start: (1, 1), end: (1, 10), token_type: TokenType::Integer(54) },
+        Token { start: (1, 10), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    hex_integer_parsing,
+    "0xff",
+    [
+        Token { start: (1, 1), end: (1, 5), token_type: TokenType::Integer(255) },
+        Token { start: (1, 5), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    negative_hex_integer_parsing,
+    "-0xff",
+    [
+        Token { start: (1, 1), end: (1, 6), token_type: TokenType::Integer(-255) },
+        Token { start: (1, 6), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    octal_integer_parsing,
+    "0o14",
+    [
+        Token { start: (1, 1), end: (1, 5), token_type: TokenType::Integer(12) },
+        Token { start: (1, 5), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    decimal_integer_parsing,
+    "0d12",
+    [
+        Token { start: (1, 1), end: (1, 5), token_type: TokenType::Integer(12) },
+        Token { start: (1, 5), end: (2, 1), token_type: TokenType::EOL }
+    ]
+);
+
+token_list_comparison!(
+    integer_64bit_max,
+    "
+9_223_372_036_854_775_807
+-9_223_372_036_854_775_807
+    ",
+    [
+        Token { start: (1, 1), end: (1, 26), token_type: TokenType::Integer(9_223_372_036_854_775_807) },
+        Token { start: (1, 26), end: (2, 1), token_type: TokenType::EOL },
+
+        Token { start: (2, 1), end: (2, 27), token_type: TokenType::Integer(-9_223_372_036_854_775_807) },
+        Token { start: (2, 27), end: (3, 1), token_type: TokenType::EOL }
+    ]
+);
+
+custom_assert!(
+    integer_overflow,
+    "9_999_999_999_999_999_999",
+    (result) => {
+        assert_eq!(result.is_err(), true);
+        match result.unwrap_err() {
+            engine_lib::error::EngineError::ParseIntError(err) => {
+                assert_eq!(err.kind(), &std::num::IntErrorKind::PosOverflow);
+            },
+            err => return Err(err) 
+        };
+
+        Ok(())
+    }
 );
