@@ -104,7 +104,17 @@ impl<'a> Lexer<'a> {
                 _ => Minus,
             },
             '*' => check_double!(Multiply, '=', MultiplyEqual),
-            '/' => check_double!(Divide, '=', DivideEqual),
+            
+            '/' => match self.peek() {
+                Some(&'/') => return self.consume_single_line_comment(),
+                Some(&'*') => return self.consume_multi_line_comment(),
+                Some(&'=') => {
+                    self.next();
+                    DivideEqual
+                },
+                _ => Divide,
+            },
+
             '!' => check_double!(Not, '=', NotEqual),
             '<' => check_double!(LesserThan, '=', LesserEqualThan),
             '>' => check_double!(GreaterThan, '=', GreaterEqualThan),
@@ -164,6 +174,25 @@ impl<'a> Lexer<'a> {
             start,
             end: self.cursor,
         });
+    }
+
+    /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
+    fn consume_single_line_comment(&mut self) -> EngineResult<Option<TokenType>> {
+        self.eat_until(&['\n']);
+        self.next();
+
+        Ok(None)
+    }
+
+    /// Consumes a multi-line comment (skips until it reaches */)
+    fn consume_multi_line_comment(&mut self) -> EngineResult<Option<TokenType>> {
+        self.skip_until(&['*']);
+        self.expect(&'*')?;
+        if self.expect(&'/').is_err() {
+            return self.consume_multi_line_comment();
+        }
+
+        Ok(None)
     }
 
     /// Attempts to return a [`TokenType::String`]
@@ -278,6 +307,16 @@ impl<'a> Lexer<'a> {
             None
         } else {
             Some(collector)
+        }
+    }
+
+    fn skip_until(&mut self, term: &[char]) {
+        while let Some(char) = self.peek() {
+            if term.contains(char) {
+                break;
+            }
+
+            self.next();
         }
     }
 

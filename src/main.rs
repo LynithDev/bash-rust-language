@@ -3,7 +3,7 @@ use engine_lib::Engine;
 #[macro_use] extern crate log;
 
 const CODE: &str = r#"
-var test = 58195815891891589015
+
 "#;
 
 fn main() {
