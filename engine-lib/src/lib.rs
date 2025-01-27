@@ -25,8 +25,11 @@ impl Engine {
 
     pub fn exec(&mut self, code: &str) -> EngineResult<i32> {
         let mut lexer = Lexer::create(code);
+        debug!("created lexer");
 
         println!("{:#?}", lexer.tokenize());
+
+        lexer.fetch_errors().iter().for_each(|e| error!("{e}"));
 
         Ok(0)
     }

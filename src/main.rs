@@ -2,9 +2,7 @@ use engine_lib::Engine;
 
 #[macro_use] extern crate log;
 
-const CODE: &str = r#"
-
-"#;
+const CODE: &str = include_str!("../script.tsh");
 
 fn main() {
     pretty_env_logger::formatted_builder()
@@ -13,12 +11,12 @@ fn main() {
         .filter_level(log::LevelFilter::Trace)
         .init();
 
-    info!("Creating engine");
+    info!("creating engine");
 
     let mut engine = Engine::default();
 
     match engine.exec(CODE) {
-        Ok(status) => info!("Finished with status {status}"),
+        Ok(status) => info!("finished with status {status}"),
         Err(err) => error!("{err}")
     }
 }

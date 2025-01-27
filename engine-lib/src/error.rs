@@ -1,4 +1,4 @@
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum EngineError {
     #[error("lexer error: {0}")]
     LexerError(#[from] crate::lexer::LexerError),
@@ -11,3 +11,4 @@ pub enum EngineError {
 }
 
 pub type EngineResult<T> = std::result::Result<T, EngineError>;
+pub type ErrorList = Vec<EngineError>;

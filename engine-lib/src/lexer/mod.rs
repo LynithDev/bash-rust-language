@@ -4,14 +4,14 @@ use tokens::{Token, TokenList, TokenType};
 
 use crate::{
     constants::{MAX_I32_LEN, MAX_I64_LEN},
-    error::{EngineError, EngineResult},
+    error::{EngineError, EngineResult, ErrorList},
 };
 
 pub mod tokens;
 
 pub(super) type Cursor = (u16, u16);
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum LexerError {
     #[error("unexpected end of input")]
     UnexpectedEnd,
@@ -19,6 +19,8 @@ pub enum LexerError {
     InvalidNumberNotation,
     #[error("expected character '{expected}' but found {found:?}")]
     UnexpectedCharacter { expected: char, found: Option<char> },
+    #[error("unknown token(s) at {}:{} to {}:{}", start.0, start.1, end.0, end.1)]
+    UnknownToken { start: Cursor, end: Cursor }
 }
 
 pub struct Lexer<'a> {
@@ -26,34 +28,39 @@ pub struct Lexer<'a> {
     cursor: Cursor,
     tokens: TokenList,
     max_int_len: u8,
+    errors: ErrorList,
 }
 
 impl<'a> Lexer<'a> {
     pub fn create(input: &'a str) -> Self {
         Self {
             chars: input.trim().chars().peekable(),
-            cursor: (1, 1),
+            cursor: Self::create_cursor(),
             tokens: TokenList::new(),
             max_int_len: MAX_I64_LEN,
+            errors: ErrorList::new(),
         }
     }
 
     pub fn create_32b(input: &'a str) -> Self {
         Self {
             chars: input.trim().chars().peekable(),
-            cursor: (1, 1),
+            cursor: Self::create_cursor(),
             tokens: TokenList::new(),
             max_int_len: MAX_I32_LEN,
+            errors: ErrorList::new(),
         }
     }
 
-    pub fn tokenize(&mut self) -> EngineResult<&TokenList> {
+    pub fn tokenize(&mut self) -> &TokenList {
         while self.peek().is_some() {
             let start = self.cursor;
 
             if let Some(char) = self.next() {
-                if let Some(token_type) = self.scan_char(&char)? {
-                    self.add_token(token_type, start);
+                match self.scan_char(&start, &char) {
+                    Ok(Some(token_type)) => self.add_token(token_type, start),
+                    Err(err) => self.errors.push(err),
+                    _ => {}
                 }
             }
         }
@@ -62,10 +69,19 @@ impl<'a> Lexer<'a> {
         self.next_cursor_line();
         self.add_token(TokenType::EOL, start);
 
-        Ok(&self.tokens)
+        &self.tokens
     }
 
-    fn scan_char(&mut self, char: &char) -> EngineResult<Option<TokenType>> {
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn fetch_errors(&self) -> &ErrorList {
+        &self.errors
+    }
+
+
+    fn scan_char(&mut self, start: &Cursor, char: &char) -> EngineResult<Option<TokenType>> {
         macro_rules! check_double {
             ($single_type:expr, $double:tt, $double_type:expr) => {
                 if self.next_if_eq(&$double).is_some() {
@@ -83,6 +99,7 @@ impl<'a> Lexer<'a> {
         }
 
         use TokenType::*;
+
         Ok(Some(match char {
             ' ' => return Ok(None),
             '\n' => EOL,
@@ -134,9 +151,7 @@ impl<'a> Lexer<'a> {
             '$' => self.consume_shell_command()?,
 
             char => {
-                let Some(consumed) = self.eat_word() else {
-                    return Ok(None);
-                };
+                let consumed = self.eat_word().unwrap_or_default();
 
                 let word = format!("{char}{consumed}");
                 match word.as_str() {
@@ -162,7 +177,8 @@ impl<'a> Lexer<'a> {
                     "true" => Boolean(true),
                     "false" => Boolean(false),
 
-                    _ => Identifier(Box::from(word)),
+                    _ if Self::is_valid_identifier(char) => Identifier(Box::from(word)),
+                    _ => return Err(EngineError::LexerError(LexerError::UnknownToken { start: *start, end: self.cursor }))
                 }
             }
         }))
@@ -224,9 +240,17 @@ impl<'a> Lexer<'a> {
             _ => None,
         };
 
-        Ok(TokenType::ShellCommand(Box::from((cmd_name, cmd_args)), 
-        ))
+        Ok(TokenType::ShellCommand(Box::from((cmd_name, cmd_args))))
     }
+
+    /// Returns true if the char is a valid character for an identifier, false otherwies
+    fn is_valid_identifier(char: &char) -> bool {
+        match char {
+            '_' => true,
+            _ => char.is_alphanumeric(),
+        }
+    }
+
 
     /// Attempts to parse and return an integer
     fn eat_number(&mut self, char: char) -> EngineResult<isize> {
@@ -287,15 +311,21 @@ impl<'a> Lexer<'a> {
 
     /// Iterates until it reaches whitespace
     fn eat_word(&mut self) -> Option<String> {
-        self.eat_until(&[' ', '\t'])
+        self.eat_until_conditional(|char| !Self::is_valid_identifier(char))
     }
 
     /// Iterates until it reaches the closing character
     fn eat_until(&mut self, term: &[char]) -> Option<String> {
+        self.eat_until_conditional(|c| term.contains(c))
+    }
+
+    /// Iterates until it reaches the closing character
+    fn eat_until_conditional<F>(&mut self, func: F) -> Option<String>
+    where F: Fn(&char) -> bool {
         let mut collector = String::new();
 
         while let Some(char) = self.peek() {
-            if term.contains(char) {
+            if func(char) {
                 break;
             }
 
@@ -385,5 +415,10 @@ impl<'a> Lexer<'a> {
     /// Moves the cursor to the next line and resets the column to 0
     fn next_cursor_line(&mut self) {
         self.cursor = (self.cursor.0 + 1, 1);
+    }
+
+    #[inline]
+    const fn create_cursor() -> Cursor {
+        (1, 1)
     }
 }

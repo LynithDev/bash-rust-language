@@ -5,26 +5,31 @@ macro_rules! token_list_comparison {
             let code = $code;
 
             let mut lexer = engine_lib::lexer::Lexer::create(code);
-            let token_list = lexer.tokenize()?;
+            let token_list = lexer.tokenize();
 
             let expected = vec![
                 $($exp),+
             ];
 
             pretty_assertions::assert_eq!(&expected, token_list);
+
+            if lexer.has_errors() {
+                println!("{:#?}", lexer.fetch_errors());
+            }
+
             Ok(())
         }
     };
 }
 
 macro_rules! custom_assert {
-    ($name:ident, $code:literal, ($result:ident) => $block:block) => {
+    ($name:ident, $code:literal, ($lexer:ident) => $block:block) => {
         #[test]
         fn $name() -> engine_lib::error::EngineResult<()> {
             let code = $code;
 
-            let mut lexer = engine_lib::lexer::Lexer::create(code);
-            let $result = lexer.tokenize();
+            let mut $lexer = engine_lib::lexer::Lexer::create(code);
+            $lexer.tokenize();
 
             $block
         }
@@ -468,14 +473,16 @@ mod integer_parsing {
     custom_assert!(
         integer_overflow,
         "9_999_999_999_999_999_999",
-        (result) => {
-            assert!(result.is_err());
-            match result.unwrap_err() {
-                engine_lib::error::EngineError::ParseIntError(err) => {
-                    pretty_assertions::assert_eq!(err.kind(), &std::num::IntErrorKind::PosOverflow);
-                },
-                err => return Err(err)
-            };
+        (lexer) => {
+            assert!(lexer.has_errors());
+            if let Some(err) = lexer.fetch_errors().first() {
+                match err {
+                    engine_lib::error::EngineError::ParseIntError(err) => {
+                        pretty_assertions::assert_eq!(err.kind(), &std::num::IntErrorKind::PosOverflow);
+                    },
+                    err => return Err(err.clone())
+                }
+            }
 
             Ok(())
         }
