@@ -2,63 +2,120 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // keywords
-    Var, // 'var'                   - e.g. var test = 5
-    Function, // 'fn'               - e.g. fn test(arg: String): Int {...}
-    For, // 'for'                   - e.g. for i = 0, i < 5, i += 1 { ... }     OR  for i in 0..5 {...}     OR  for {...}
-    If, // 'if'                     - e.g. if condition {...}
-    Else, // 'else'                 - e.g. if condition {...} else if {...} else {...}
-    Match, // 'match'               - e.g. match var { pattern => {...}, pattern || pattern => {...} }
-    Break, // 'break'       
-    Continue, // 'continue'
-    Return, // 'return'
-    In, // 'in'
-    
-    
+
+    /// `var`           - e.g. var test = 5
+    Var,
+    /// `fn`            - e.g. fn test(arg: String): Int {...}
+    Function,
+    /// `for`           - e.g. for i = 0, i < 5, i += 1 { ... }     OR  for i in 0..5 {...}     OR  for {...}
+    For,
+    /// `if`            - e.g. if condition {...}
+    If,
+    /// `else`          - e.g. if condition {...} else if {...} else {...}
+    Else,
+    /// `match`         - e.g. match var { pattern => {...}, pattern || pattern => {...} }
+    Match,
+    /// `break`       
+    Break,
+    /// `continue`
+    Continue,
+    /// `return`
+    Return,
+    /// `in`
+    In,
+    /// `is`            - note, can be placed before a "not", which would effectively create an "is not" in the tokens list. This should be parsed as a NotEqual
+    Is,
+
+
+
     // special
-    Include, // '@include'          - e.g. '@include "path"'
-    Const, // '@const'              - e.g. '@const var NAME = value' OR '@const fn test() {...}'
-    
+
+    /// `@include`      - e.g. `@include "path"`
+    Include,
+    /// `@const`        - e.g. `@const var NAME = value` OR `@const fn test() {...}`
+    Const,
+
 
 
     // operator tokens
-    Equal, // 'is' OR '='
-    Plus, // '+'
-    Minus, // '-'
-    Divide, // '/'
-    Multiply, // '*'
-    EqualEqual, // '=='
-    PlusEqual, // '+='
-    MinusEqual, // '-='
-    DivideEqual, // '/=,
-    MultiplyEqual, // '*=',
-    NotEqual, // 'is not' OR '!=',
-    Not, // 'not' OR '!'
-    And, // 'and' OR '&&'
-    Or, // 'or' OR '||'
+
+    /// `=`
+    Equal,
+    /// `+`
+    Plus,
+    /// `-`
+    Minus,
+    /// `/`
+    Divide,
+    /// `*`
+    Multiply,
+    /// `==`
+    EqualEqual,
+    /// `+=`
+    PlusEqual,
+    /// `-=`
+    MinusEqual,
+    /// `/=,
+    DivideEqual,
+    /// `*=`,
+    MultiplyEqual,
+    /// `!=`,
+    NotEqual,
+    /// `not` OR `!`
+    Not,
+    /// `>`
+    GreaterThan,
+    /// `>=`
+    GreaterEqualThan,
+    /// `<`
+    LesserThan,
+    /// `<=`
+    LesserEqualThan,
+    /// `and` OR `&&`
+    And,
+    /// `or` OR `||`
+    Or,
+
+
 
     // punctuation
-    LParam, // '('
-    RParam, // ')'
-    LBracket, // '{'
-    RBracket, // '}'
-    Comma, // ','
-    Colon, // ':'
+
+    /// `(`
+    LParam,
+    /// `)`
+    RParam,
+    /// `{`
+    LBracket,
+    /// `}`
+    RBracket,
+    /// `,`
+    Comma,
+    /// `:`
+    Colon,
+
+
 
     // literals & types
-    Identifier(String), 
-    String(String), // '"..."'
-    Integer(isize), // e.g. '1' OR '-5'
-    Boolean(bool), // 'true' OR 'false'
-    ShellCommand(String, Option<String>), // '$cmd arg1 arg2' OR '$cmd(arg1 arg2)'
+    Identifier(Box<String>),
+    /// `"..."`
+    String(Box<String>),
+    /// e.g. `1` OR `-5`
+    Integer(isize),
+    /// `true` OR `false`
+    Boolean(bool),
+    /// `$cmd arg1 arg2` OR `$cmd(arg1 arg2)`
+    ShellCommand(Box<String>, Option<Box<String>>),
 
+
+    /// `\n`
     EOL,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub line: usize,
-    pub col: usize,
+    pub start: (usize, usize),
+    pub end: (usize, usize),
 }
 
 pub type TokenList = Vec<Token>;

@@ -3,10 +3,7 @@ use engine_lib::Engine;
 #[macro_use] extern crate log;
 
 const CODE: &str = r#"
-var test = 531
-var test2 = "lol"
-var result = $git commit -m "test"
-var res = $git(commit -m "test")
+var test4 = $echo hello world + "lol"
 "#;
 
 fn main() {
@@ -20,7 +17,7 @@ fn main() {
 
     let mut engine = Engine::default();
 
-    match engine.exec_str(CODE) {
+    match engine.exec(CODE) {
         Ok(status) => info!("Finished with status {status}"),
         Err(err) => error!("{err}")
     }

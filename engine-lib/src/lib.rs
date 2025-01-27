@@ -1,32 +1,33 @@
+#![allow(incomplete_features)]
 #![feature(try_blocks)]
+#![feature(guard_patterns)]
 
 #[macro_use] extern crate log;
 
 use error::EngineResult;
+use lexer::Lexer;
 
 pub mod lexer;
 pub mod error;
+pub mod constants;
 
 #[derive(Default)]
-pub struct Engine {}
+pub struct Engine {
+
+}
 
 impl Engine {
     pub fn create() -> Self {
         Self {
-            
+
         }
     }
 
-    pub fn exec(&mut self, code: String) -> EngineResult<i32> {
-        let tokens = lexer::tokenize(code)?;
+    pub fn exec(&mut self, code: &str) -> EngineResult<i32> {
+        let mut lexer = Lexer::create(code);
 
-        println!("{:#?}", tokens);
+        println!("{:#?}", lexer.tokenize());
 
         Ok(0)
-    }
-
-    #[inline]
-    pub fn exec_str(&mut self, code: &str) -> EngineResult<i32> {
-        self.exec(code.to_string())
     }
 }
