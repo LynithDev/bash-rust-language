@@ -1,4 +1,6 @@
-#[repr(u16)]
+use super::Cursor;
+
+#[repr(u8)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // keywords
@@ -104,7 +106,7 @@ pub enum TokenType {
     /// `true` OR `false`
     Boolean(bool),
     /// `$cmd arg1 arg2` OR `$cmd(arg1 arg2)`
-    ShellCommand(Box<String>, Option<Box<String>>),
+    ShellCommand(Box<(String, Option<String>)>),
 
 
     /// `\n`
@@ -114,8 +116,8 @@ pub enum TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub start: (usize, usize),
-    pub end: (usize, usize),
+    pub start: Cursor,
+    pub end: Cursor,
 }
 
 pub type TokenList = Vec<Token>;

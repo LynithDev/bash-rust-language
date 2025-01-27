@@ -9,6 +9,8 @@ use crate::{
 
 pub mod tokens;
 
+pub(super) type Cursor = (u16, u16);
+
 #[derive(thiserror::Error, Debug)]
 pub enum LexerError {
     #[error("unexpected end of input")]
@@ -21,7 +23,7 @@ pub enum LexerError {
 
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
-    cursor: (usize, usize),
+    cursor: Cursor,
     tokens: TokenList,
     max_int_len: u8,
 }
@@ -156,7 +158,7 @@ impl<'a> Lexer<'a> {
         }))
     }
 
-    fn add_token(&mut self, token_type: TokenType, start: (usize, usize)) {
+    fn add_token(&mut self, token_type: TokenType, start: Cursor) {
         self.tokens.push(Token {
             token_type,
             start,
@@ -191,11 +193,9 @@ impl<'a> Lexer<'a> {
                 }
             }
             _ => None,
-        }.map(Box::from);
+        };
 
-        Ok(TokenType::ShellCommand(
-            Box::from(cmd_name), 
-            cmd_args
+        Ok(TokenType::ShellCommand(Box::from((cmd_name, cmd_args)), 
         ))
     }
 
