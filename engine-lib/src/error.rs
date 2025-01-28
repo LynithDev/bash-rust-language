@@ -1,11 +1,9 @@
-#[derive(thiserror::Error, Debug, Clone)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq, Clone)]
 pub enum EngineError {
-    #[error("lexer error: {0}")]
+    #[error("{0}")]
     LexerError(#[from] crate::lexer::LexerError),
     #[error("an unreachable error has occurred. this shouldn't ever happen")]
     Unreachable,
-    #[error("int parse error")]
-    ParseIntError(#[from] std::num::ParseIntError),
     #[error("an unknown error has occurred")]
     Unknown,
 }

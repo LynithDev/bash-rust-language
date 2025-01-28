@@ -1,54 +1,53 @@
-use std::{iter::Peekable, str::Chars};
+use std::{iter::Peekable, path::PathBuf, str::Chars};
 
+use error::LexerResult;
 use tokens::{Token, TokenList, TokenType};
 
 use crate::{
-    constants::{MAX_I32_LEN, MAX_I64_LEN},
-    error::{EngineError, EngineResult, ErrorList},
+    constants::{MAX_I32_LEN, MAX_I64_LEN}, Cursor, error::{EngineError, ErrorList}
 };
 
+pub use error::{LexerError, LexerErrorKind};
+
+mod error;
 pub mod tokens;
-
-pub(super) type Cursor = (u16, u16);
-
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum LexerError {
-    #[error("unexpected end of input")]
-    UnexpectedEnd,
-    #[error("invalid number notation (valid notations are b(inary), o(ctal), d(ecimal), x(hex)")]
-    InvalidNumberNotation,
-    #[error("expected character '{expected}' but found {found:?}")]
-    UnexpectedCharacter { expected: char, found: Option<char> },
-    #[error("unknown token(s) at {}:{} to {}:{}", start.0, start.1, end.0, end.1)]
-    UnknownToken { start: Cursor, end: Cursor }
-}
 
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
+    errors: ErrorList,
     cursor: Cursor,
     tokens: TokenList,
     max_int_len: u8,
-    errors: ErrorList,
+    
+    #[cfg(feature = "cli")]
+    source: &'a str,
+
+    #[cfg(feature = "cli")]
+    path: Option<PathBuf>,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn create(input: &'a str) -> Self {
-        Self {
-            chars: input.trim().chars().peekable(),
-            cursor: Self::create_cursor(),
-            tokens: TokenList::new(),
-            max_int_len: MAX_I64_LEN,
-            errors: ErrorList::new(),
-        }
+    pub fn create(input: &'a str, path: Option<PathBuf>) -> Self {
+        Self::create_bits(input, path, MAX_I64_LEN)
     }
 
-    pub fn create_32b(input: &'a str) -> Self {
+    pub fn create_32b(input: &'a str, path: Option<PathBuf>) -> Self {
+        Self::create_bits(input, path, MAX_I32_LEN)
+    }
+
+    pub fn create_bits(input: &'a str, path: Option<PathBuf>, max_int_len: u8) -> Self {
         Self {
             chars: input.trim().chars().peekable(),
-            cursor: Self::create_cursor(),
-            tokens: TokenList::new(),
-            max_int_len: MAX_I32_LEN,
             errors: ErrorList::new(),
+            cursor: Cursor::create(),
+            tokens: TokenList::new(),
+            max_int_len,
+
+            #[cfg(feature = "cli")]
+            source: input,
+
+            #[cfg(feature = "cli")]
+            path,
         }
     }
 
@@ -57,16 +56,25 @@ impl<'a> Lexer<'a> {
             let start = self.cursor;
 
             if let Some(char) = self.next() {
-                match self.scan_char(&start, &char) {
+                match self.scan_char(&char) {
                     Ok(Some(token_type)) => self.add_token(token_type, start),
-                    Err(err) => self.errors.push(err),
+                    Err(err) => {
+                        self.errors.push(EngineError::LexerError(LexerError {
+                            #[cfg(feature = "cli")]
+                            source_file: self.get_source_file(start, self.cursor),
+                            start,
+                            end: self.cursor,
+                            kind: err,
+
+                        }));
+                    },
                     _ => {}
                 }
             }
         }
 
         let start = self.cursor;
-        self.next_cursor_line();
+        self.cursor.next_line();
         self.add_token(TokenType::EOL, start);
 
         &self.tokens
@@ -80,8 +88,19 @@ impl<'a> Lexer<'a> {
         &self.errors
     }
 
+    #[cfg(feature = "cli")]
+    fn get_source_file(&self, start: Cursor, end: Cursor) -> error::SourceFile {
+        let path = self.path.clone();
 
-    fn scan_char(&mut self, start: &Cursor, char: &char) -> EngineResult<Option<TokenType>> {
+        let start_index = dbg!(start).index() as usize;
+        let end_index = dbg!(end).index() as usize;
+
+        let source = &self.source[start_index..end_index];
+
+        Box::from((path, source.to_string()))
+    }
+
+    fn scan_char(&mut self, char: &char) -> LexerResult<Option<TokenType>> {
         macro_rules! check_double {
             ($single_type:expr, $double:tt, $double_type:expr) => {
                 if self.next_if_eq(&$double).is_some() {
@@ -121,14 +140,14 @@ impl<'a> Lexer<'a> {
                 _ => Minus,
             },
             '*' => check_double!(Multiply, '=', MultiplyEqual),
-            
+
             '/' => match self.peek() {
                 Some(&'/') => return self.consume_single_line_comment(),
                 Some(&'*') => return self.consume_multi_line_comment(),
                 Some(&'=') => {
                     self.next();
                     DivideEqual
-                },
+                }
                 _ => Divide,
             },
 
@@ -178,7 +197,7 @@ impl<'a> Lexer<'a> {
                     "false" => Boolean(false),
 
                     _ if Self::is_valid_identifier(char) => Identifier(Box::from(word)),
-                    _ => return Err(EngineError::LexerError(LexerError::UnknownToken { start: *start, end: self.cursor }))
+                    _ => return Err(LexerErrorKind::UnknownToken)
                 }
             }
         }))
@@ -187,13 +206,13 @@ impl<'a> Lexer<'a> {
     fn add_token(&mut self, token_type: TokenType, start: Cursor) {
         self.tokens.push(Token {
             token_type,
-            start,
-            end: self.cursor,
+            start: start.to_tuple(),
+            end: self.cursor.to_tuple(),
         });
     }
 
     /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
-    fn consume_single_line_comment(&mut self) -> EngineResult<Option<TokenType>> {
+    fn consume_single_line_comment(&mut self) -> LexerResult<Option<TokenType>> {
         self.eat_until(&['\n']);
         self.next();
 
@@ -201,7 +220,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Consumes a multi-line comment (skips until it reaches */)
-    fn consume_multi_line_comment(&mut self) -> EngineResult<Option<TokenType>> {
+    fn consume_multi_line_comment(&mut self) -> LexerResult<Option<TokenType>> {
         self.skip_until(&['*']);
         self.expect(&'*')?;
         if self.expect(&'/').is_err() {
@@ -212,25 +231,26 @@ impl<'a> Lexer<'a> {
     }
 
     /// Attempts to return a [`TokenType::String`]
-    fn consume_string(&mut self) -> EngineResult<TokenType> {
-        let string = self.eat_until(&['"']).unwrap_or_default();
+    fn consume_string(&mut self) -> LexerResult<TokenType> {
+        let string = self.eat_until(&['"', '\n']).unwrap_or_default();
         self.expect(&'"')?;
         Ok(TokenType::String(Box::from(string)))
     }
 
     /// Attempts to return a [`TokenType::ShellCommand`]
-    fn consume_shell_command(&mut self) -> EngineResult<TokenType> {
-        let cmd_name = self.eat_until(&[' ', '\t', '\n', '('])
-            .ok_or(EngineError::LexerError(LexerError::UnexpectedEnd))?;
+    fn consume_shell_command(&mut self) -> LexerResult<TokenType> {
+        let cmd_name = self
+            .eat_until(&[' ', '\t', '\n', '('])
+            .ok_or(LexerErrorKind::UnexpectedEnd)?;
 
         let cmd_args = match self.peek() {
             Some(' ' | '\t') => {
                 self.next();
                 self.eat_until(&['\n'])
-            },
+            }
             Some('(') => {
                 self.next();
-                if let Some(res) = self.eat_until(&[')']) {
+                if let Some(res) = self.eat_until(&['\n', '\0', ')']) {
                     self.expect(&')')?;
                     Some(res)
                 } else {
@@ -251,12 +271,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-
     /// Attempts to parse and return an integer
-    fn eat_number(&mut self, char: char) -> EngineResult<isize> {
+    fn eat_number(&mut self, char: char) -> LexerResult<isize> {
         let mut collector = String::new();
 
         let mut count: u8 = 0;
+        let mut error: Option<LexerErrorKind> = None;
 
         // We switch the mode depending on the first character:
         // if it begins with 0, it must be followed by a letter:
@@ -277,14 +297,22 @@ impl<'a> Lexer<'a> {
                     Some('o') => 8,
                     Some('d') => 10,
                     Some('x') => 16,
-                    _ => return Err(EngineError::LexerError(LexerError::InvalidNumberNotation)),
+                    _ => {
+                        error = Some(LexerErrorKind::InvalidNumberNotation);
+                        10
+                    },
                 };
 
                 self.next();
                 radix
             }
 
-            _ => return Err(EngineError::Unreachable),
+            _ => {
+                return Err(LexerErrorKind::UnexpectedCharacter {
+                    expected: "0..9".to_string(),
+                    found: Some(char),
+                })
+            }
         };
 
         while count < self.max_int_len {
@@ -306,7 +334,26 @@ impl<'a> Lexer<'a> {
             self.next();
         }
 
-        Ok(isize::from_str_radix(&collector, radix)?)
+        if let Some(err) = error {
+            return Err(err);
+        }
+
+        use std::num::IntErrorKind;
+        match isize::from_str_radix(&collector, radix) {
+            Ok(num) => Ok(num),
+            Err(err) => Err(match err.kind() {
+                IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => {
+                    LexerErrorKind::IntegerOverflow(collector)
+                }
+
+                IntErrorKind::InvalidDigit => LexerErrorKind::UnexpectedCharacter {
+                    expected: "0..9".to_string(),
+                    found: None,
+                },
+
+                _ => LexerErrorKind::UnknownToken,
+            }),
+        }
     }
 
     /// Iterates until it reaches whitespace
@@ -321,7 +368,9 @@ impl<'a> Lexer<'a> {
 
     /// Iterates until it reaches the closing character
     fn eat_until_conditional<F>(&mut self, func: F) -> Option<String>
-    where F: Fn(&char) -> bool {
+    where
+        F: Fn(&char) -> bool,
+    {
         let mut collector = String::new();
 
         while let Some(char) = self.peek() {
@@ -353,7 +402,7 @@ impl<'a> Lexer<'a> {
     /// Iterates to the next character
     fn next(&mut self) -> Option<char> {
         if let Some(char) = self.chars.next() {
-            self.next_cursor(&char);
+            self.cursor.next(&char);
             Some(char)
         } else {
             None
@@ -370,21 +419,21 @@ impl<'a> Lexer<'a> {
     }
 
     /// Expects a character to be there
-    fn expect(&mut self, expected: &char) -> EngineResult<char> {
-        let Some(char) = self.next() else {
-            return Err(EngineError::LexerError(LexerError::UnexpectedCharacter {
-                expected: *expected,
+    fn expect(&mut self, expected: &char) -> LexerResult<char> {
+        let Some(char) = self.next_if_eq(expected) else {
+            return Err(LexerErrorKind::UnexpectedCharacter {
+                expected: expected.to_string(),
                 found: None,
-            }))
+            });
         };
 
         if &char == expected {
             Ok(char)
         } else {
-            Err(EngineError::LexerError(LexerError::UnexpectedCharacter {
-                expected: *expected,
+            Err(LexerErrorKind::UnexpectedCharacter {
+                expected: expected.to_string(),
                 found: Some(char),
-            }))
+            })
         }
     }
 
@@ -396,29 +445,5 @@ impl<'a> Lexer<'a> {
     /// Returns the next character if exists without iterating
     fn peek(&mut self) -> Option<&char> {
         self.chars.peek()
-    }
-
-    /// Goes to the new line if needed, based on the character
-    fn next_cursor(&mut self, char: &char) {
-        if char.eq(&'\n') {
-            self.next_cursor_line();
-        } else {
-            self.next_cursor_char();
-        }
-    }
-
-    /// Moves the cursor to the next column
-    fn next_cursor_char(&mut self) {
-        self.cursor.1 += 1;
-    }
-
-    /// Moves the cursor to the next line and resets the column to 0
-    fn next_cursor_line(&mut self) {
-        self.cursor = (self.cursor.0 + 1, 1);
-    }
-
-    #[inline]
-    const fn create_cursor() -> Cursor {
-        (1, 1)
     }
 }

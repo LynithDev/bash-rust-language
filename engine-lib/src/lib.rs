@@ -10,6 +10,9 @@ use lexer::Lexer;
 pub mod lexer;
 pub mod error;
 pub mod constants;
+mod cursor;
+
+pub use cursor::Cursor;
 
 #[derive(Default)]
 pub struct Engine {
@@ -24,12 +27,12 @@ impl Engine {
     }
 
     pub fn exec(&mut self, code: &str) -> EngineResult<i32> {
-        let mut lexer = Lexer::create(code);
+        let mut lexer = Lexer::create(code, None);
         debug!("created lexer");
 
         println!("{:#?}", lexer.tokenize());
 
-        lexer.fetch_errors().iter().for_each(|e| error!("{e}"));
+        lexer.fetch_errors().iter().for_each(|e| println!("{e}"));
 
         Ok(0)
     }

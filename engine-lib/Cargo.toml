@@ -6,5 +6,10 @@ edition = "2021"
 [dependencies]
 log = { workspace = true }
 thiserror = { workspace = true }
+strum = { workspace = true }
+colored = { workspace = true, optional = true }
 
-
+[features]
+default = ["cli"]
+cli = ["dep:colored"]
+cli_no_color = ["colored/no-color"]

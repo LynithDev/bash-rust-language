@@ -10,8 +10,10 @@ edition = "2021"
 pretty_env_logger = "0.5"
 log = "0.4.25"
 
-# errors
+# utils
 thiserror = "2.0.11"
+strum = { version = "0.26", features = ["derive"] }
+colored = { version = "3.0.0" }
 
 [dependencies]
 engine-lib = { path = "engine-lib" }

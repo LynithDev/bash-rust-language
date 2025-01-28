@@ -1,4 +1,4 @@
-use super::Cursor;
+use crate::cursor::CursorTuple;
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone)]
@@ -116,8 +116,8 @@ pub enum TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub start: Cursor,
-    pub end: Cursor,
+    pub start: CursorTuple,
+    pub end: CursorTuple,
 }
 
 pub type TokenList = Vec<Token>;
