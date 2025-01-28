@@ -9,11 +9,18 @@ pub enum TokenType {
     Var,
     /// `fn`            - e.g. fn test(arg: String): Int {...}
     Function,
-    /// `for`           - e.g. for i in 0..=5 {...}     OR  for {...}
+    /// `for`           - e.g. for i in 0..=5 {...}
     For,
-    /// `if`            - e.g. if condition {...}
+    /// `while`         - e.g. while condition {...}
+    While,
+    /// `loop`          - e.g. loop {...}
+    Loop,
+    /// `if`            - e.g. if condition {...} OR if condition: ...
     If,
-    /// `else`          - e.g. if condition {...} else if {...} else {...}
+    /// `else`          
+    ///                 - e.g. if condition {...} else if {...} else {...}
+    ///                        if condition: ...
+    ///                        else: ...
     Else,
     /// `match`         - e.g. match var { pattern => {...}, pattern || pattern => {...} }
     Match,

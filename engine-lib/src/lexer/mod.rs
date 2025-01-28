@@ -184,6 +184,8 @@ impl<'a> Lexer<'a> {
                     "var" => Var,
                     "fn" => Function,
                     "for" => For,
+                    "while" => While,
+                    "loop" => Loop,
                     "if" => If,
                     "else" => Else,
                     "match" => Match,
