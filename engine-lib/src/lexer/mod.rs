@@ -123,13 +123,26 @@ impl<'a> Lexer<'a> {
             ' ' => return Ok(None),
             '\n' => EOL,
 
-            '=' => check_double!(Equal, '=', EqualEqual),
+            '=' => match self.peek() {
+                Some(&'=') => {
+                    self.next();
+                    EqualEqual
+                }
+
+                Some(&'>') => {
+                    self.next();
+                    Arrow
+                }
+                
+                _ => Equal,
+            },
             '+' => check_double!(Plus, '=', PlusEqual),
             '-' => match self.peek() {
                 Some(&'=') => {
                     self.next();
                     MinusEqual
                 }
+
                 Some(&('0'..='9')) => {
                     let Some(char) = self.next() else {
                         return Ok(None);

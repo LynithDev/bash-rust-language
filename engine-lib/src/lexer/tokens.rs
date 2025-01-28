@@ -101,6 +101,8 @@ pub enum TokenType {
     Comma,
     /// `:`
     Colon,
+    /// `=>`
+    Arrow,
     /// `..`
     Range,
     /// `..=`
