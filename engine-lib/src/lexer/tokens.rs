@@ -9,7 +9,7 @@ pub enum TokenType {
     Var,
     /// `fn`            - e.g. fn test(arg: String): Int {...}
     Function,
-    /// `for`           - e.g. for i = 0, i < 5, i += 1 { ... }     OR  for i in 0..5 {...}     OR  for {...}
+    /// `for`           - e.g. for i in 0..=5 {...}     OR  for {...}
     For,
     /// `if`            - e.g. if condition {...}
     If,
@@ -94,6 +94,10 @@ pub enum TokenType {
     Comma,
     /// `:`
     Colon,
+    /// `..`
+    Range,
+    /// `..=`
+    RangeInclusive,
 
 
 

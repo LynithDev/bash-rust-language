@@ -113,7 +113,7 @@ impl<'a> Lexer<'a> {
 
         macro_rules! double {
             ($a:tt, $b:tt) => {
-                $a if self.peek_is(&$b)
+                char == &$a && self.next_if_eq(&$b).is_some()
             };
         }
 
@@ -154,8 +154,8 @@ impl<'a> Lexer<'a> {
             '!' => check_double!(Not, '=', NotEqual),
             '<' => check_double!(LesserThan, '=', LesserEqualThan),
             '>' => check_double!(GreaterThan, '=', GreaterEqualThan),
-            double!('&', '&') => And,
-            double!('|', '|') => Or,
+            _ if double!('&', '&') => And,
+            _ if double!('|', '|') => Or, 
 
             '(' => LParam,
             ')' => RParam,
@@ -163,6 +163,13 @@ impl<'a> Lexer<'a> {
             '}' => RBracket,
             ',' => Comma,
             ':' => Colon,
+            _ if double!('.', '.') => {
+                if self.next() == Some('=') {
+                    RangeInclusive
+                } else {
+                    Range
+                }
+            }
 
             '0'..='9' => Integer(self.eat_number(*char)?),
             '"' => self.consume_string()?,
@@ -293,14 +300,19 @@ impl<'a> Lexer<'a> {
 
             '0' => {
                 let radix = match self.peek() {
-                    Some('b') => 2,
-                    Some('o') => 8,
-                    Some('d') => 10,
-                    Some('x') => 16,
-                    _ => {
-                        error = Some(LexerErrorKind::InvalidNumberNotation);
-                        10
+                    Some(char) if char.is_ascii_alphabetic() => {
+                        match char {
+                            'b' => 2,
+                            'o' => 8,
+                            'd' => 10,
+                            'x' => 16,
+                            _ => {
+                                error = Some(LexerErrorKind::InvalidNumberNotation);
+                                10
+                            },
+                        }
                     },
+                    _ => return Ok(0)
                 };
 
                 self.next();

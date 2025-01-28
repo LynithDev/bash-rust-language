@@ -1,6 +1,5 @@
-$echo hello world
-var test = 5
-var awesome_string = "test
-var lolol = 999999999999999999999
-var another_error = $echo(i dont close
-var test = 0h01
+for 0..=5 {
+
+}
+
+
