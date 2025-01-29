@@ -8,6 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Rustup and Cargo
-        run: rustup update nightly && rustup default nightly
+        run: |
+          rustup update nightly \
+          && rustup default nightly \
+          && rustup component add rust-src --toolchain nightly
+
+      - uses: Swatinem/rust-cache@v2
+
       - name: Run Tests
-        run: cargo test
+        run: ls -a && cargo test
