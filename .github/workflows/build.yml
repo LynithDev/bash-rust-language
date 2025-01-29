@@ -14,21 +14,25 @@ jobs:
       matrix:
         include:
           - platform: macos-latest # ARM
-            args: "--target aarch64-apple-darwin"
+            target: "aarch64-apple-darwin"
             name: macos
             arch: arm
+            ext: ""
           - platform: macos-latest # Intel
-            args: "--target x86_64-apple-darwin"
+            target: "x86_64-apple-darwin"
             name: macos
             arch: x86_64
+            ext: ""
           - platform: ubuntu-22.04
-            args: ""
+            target: ""
             name: linux
             arch: x86_64
+            ext: ""
           - platform: windows-latest
-            args: ""
+            target: ""
             name: windows
             arch: x86_64
+            ext: ".exe"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -47,17 +51,17 @@ jobs:
 
       - name: Build - Size Opt.
         if: matrix.name != 'windows'
-        run: ./scripts/build/size.sh "${{ matrix.args }}"
+        run: ./scripts/build/size.sh "${{ matrix.target }}"
 
       - name: Build - Size Opt.
         if: matrix.name == 'windows'
-        run: ./scripts/build/size.ps1 ${{ matrix.args }}
+        run: ./scripts/build/size.ps1
 
       - name: Upload Build - Size Opt.
         uses: actions/upload-artifact@v4
         with:
           name: lang_cli-${{ matrix.name }}-${{ matrix.arch }}-size
-          path: target/release-size/lang_cli
+          path: target/release-size/lang_cli${{ matrix.ext }}
 
 
         # Speed Profile
@@ -66,15 +70,15 @@ jobs:
         if: matrix.name != 'windows'
         env:
           CPU_NATIVE: ${{ matrix.name }} != "macos" && ${{ matrix.arch }} != "x86_64"
-        run: ./scripts/build/speed.sh "${{ matrix.args }}"
+        run: ./scripts/build/speed.sh "${{ matrix.target }}"
 
       - name: Build - Speed Opt.
         if: matrix.name == 'windows'
-        run: ./scripts/build/speed.ps1 ${{ matrix.args }}
+        run: ./scripts/build/speed.ps1
 
       - name: Upload Build - Speed Opt.
         uses: actions/upload-artifact@v4
         with:
           name: lang_cli-${{ matrix.name }}-${{ matrix.arch }}
-          path: target/release-speed/lang_cli
+          path: target/${{ matrix.target != '' && format('{0}/', matrix.target) || ''}}release-speed/lang_cli${{ matrix.ext }}
       
