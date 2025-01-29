@@ -14,17 +14,21 @@ jobs:
       matrix:
         include:
           - platform: macos-latest # ARM
-            args: --target aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
             name: macos
+            arch: arm
           - platform: macos-latest # Intel
-            args: --target x86_64-apple-darwin
+            args: "--target x86_64-apple-darwin"
             name: macos
+            arch: x86_64
           - platform: ubuntu-22.04
-            args: ''
+            args: ""
             name: linux
+            arch: x86_64
           - platform: windows-latest
-            args: ''
+            args: ""
             name: windows
+            arch: x86_64
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -32,58 +36,39 @@ jobs:
       
       - name: Setup Rustup and Cargo
         run: |
-          rustup update nightly \
-          && rustup default nightly \
-          && rustup component add rust-src --toolchain nightly
+          rustup update nightly
+          rustup default nightly
+          rustup component add rust-src --toolchain nightly
 
       - uses: Swatinem/rust-cache@v2
       
-      - name: Build - Size Opt. (No Color)
-        run: |
-          RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
-          cargo +nightly build \
-            ${{ matrix.args }} \
-            -Z build-std=std,panic_abort \
-            -Z build-std-features="optimize_for_size" \
-            -Z build-std-features=panic_immediate_abort \
-            --profile release-size \
-            --features "no-color"
-
-      - name: Upload Build - Size Opt. (No Color)
-        uses: actions/upload-artifact@v4
-        with:
-          name: lang_cli-${{ matrix.name }}-size-no-color
-          path: target/release-size/lang_cli
-      
       - name: Build - Size Opt.
-        run: |
-          RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
-          cargo +nightly build \
-            ${{ matrix.args }} \
-            -Z build-std=std,panic_abort \
-            -Z build-std-features="optimize_for_size" \
-            -Z build-std-features=panic_immediate_abort \
-            --profile release-size
+        if: matrix.name != 'windows'
+        run: ./scripts/build/size.sh ${{ matrix.args }}
+
+      - name: Build - Size Opt.
+        if: matrix.name == 'windows'
+        run: ./scripts/build/size.ps1 ${{ matrix.args }}
 
       - name: Upload Build - Size Opt.
         uses: actions/upload-artifact@v4
         with:
-          name: lang_cli-${{ matrix.name }}-size
+          name: lang_cli-${{ matrix.name }}-${{ matrix.arch }}-size
           path: target/release-size/lang_cli
 
       - name: Build - Speed Opt.
-        run: |
-          RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none -C target-cpu=native" \
-          cargo +nightly build \
-            ${{ matrix.args }} \
-            -Z build-std=std,panic_abort \
-            -Z build-std-features=panic_immediate_abort \
-            --profile release-speed
+        if: matrix.name != 'windows'
+        env:
+          CPU_NATIVE: ${{ matrix.name }} != "macos" && ${{ matrix.arch }} != "x86_64"
+        run: ./scripts/build/speed.sh ${{ matrix.args }}
 
+      - name: Build - Speed Opt.
+        if: matrix.name == 'windows'
+        run: ./scripts/build/speed.ps1 ${{ matrix.args }}
 
       - name: Upload Build - Speed Opt.
         uses: actions/upload-artifact@v4
         with:
-          name: lang_cli-${{ matrix.name }}
+          name: lang_cli-${{ matrix.name }}-${{ matrix.arch }}
           path: target/release-speed/lang_cli
       
