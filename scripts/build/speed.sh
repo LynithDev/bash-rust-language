@@ -2,7 +2,7 @@
 RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none"
 TARGET=""
 
-if [ -n $1 ]; then
+if [ ! -z "$1" ]; then
     TARGET="--target $1"
 fi
 
