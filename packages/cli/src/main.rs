@@ -1,10 +1,10 @@
-use engine_lib::Engine;
+use std::{path::PathBuf, str::FromStr};
+
+use lang_engine::Engine;
 
 #[macro_use] extern crate log;
 
-const CODE: &str = include_str!("../script.tsh");
-
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::formatted_builder()
         .target(pretty_env_logger::env_logger::Target::Stdout)
         .format_module_path(true)
@@ -15,8 +15,10 @@ fn main() {
 
     let mut engine = Engine::default();
 
-    match engine.exec(CODE) {
+    match engine.exec_file(&PathBuf::from_str("./script.tsh")?) {
         Ok(status) => info!("finished with status {status}"),
         Err(err) => error!("{err}")
-    }
+    };
+
+    Ok(())
 }

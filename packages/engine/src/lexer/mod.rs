@@ -36,7 +36,7 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn create_bits(input: &'a str, path: Option<PathBuf>, max_int_len: u8) -> Self {
-        Self {
+        let lexer = Self {
             chars: input.trim().chars().peekable(),
             errors: ErrorList::new(),
             cursor: Cursor::create(),
@@ -48,7 +48,9 @@ impl<'a> Lexer<'a> {
 
             #[cfg(feature = "cli")]
             path,
-        }
+        };
+        debug!("created lexer");
+        lexer
     }
 
     pub fn tokenize(&mut self) -> &TokenList {
@@ -86,6 +88,12 @@ impl<'a> Lexer<'a> {
 
     pub fn fetch_errors(&self) -> &ErrorList {
         &self.errors
+    }
+
+    pub fn print_errors(&self) {
+        for error in self.fetch_errors() {
+            println!("{}", error)
+        }
     }
 
     #[cfg(feature = "cli")]
@@ -235,7 +243,7 @@ impl<'a> Lexer<'a> {
 
     /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
     fn consume_single_line_comment(&mut self) -> LexerResult<Option<TokenType>> {
-        self.eat_until(&['\n']);
+        self.eat_until(&['\n'], false);
         self.next();
 
         Ok(None)
@@ -254,7 +262,7 @@ impl<'a> Lexer<'a> {
 
     /// Attempts to return a [`TokenType::String`]
     fn consume_string(&mut self) -> LexerResult<TokenType> {
-        let string = self.eat_until(&['"', '\n']).unwrap_or_default();
+        let string = self.eat_until(&['"', '\n'], true).unwrap_or_default();
         self.expect(&'"')?;
         Ok(TokenType::String(Box::from(string)))
     }
@@ -262,17 +270,17 @@ impl<'a> Lexer<'a> {
     /// Attempts to return a [`TokenType::ShellCommand`]
     fn consume_shell_command(&mut self) -> LexerResult<TokenType> {
         let cmd_name = self
-            .eat_until(&[' ', '\t', '\n', '('])
+            .eat_until(&[' ', '\t', '\n', '('], false)
             .ok_or(LexerErrorKind::UnexpectedEnd)?;
 
         let cmd_args = match self.peek() {
             Some(' ' | '\t') => {
                 self.next();
-                self.eat_until(&['\n'])
+                self.eat_until(&['\n'], false)
             }
             Some('(') => {
                 self.next();
-                if let Some(res) = self.eat_until(&['\n', '\0', ')']) {
+                if let Some(res) = self.eat_until(&['\n', '\0', ')'], true) {
                     self.expect(&')')?;
                     Some(res)
                 } else {
@@ -385,22 +393,41 @@ impl<'a> Lexer<'a> {
 
     /// Iterates until it reaches whitespace
     fn eat_word(&mut self) -> Option<String> {
-        self.eat_until_conditional(|char| !Self::is_valid_identifier(char))
+        self.eat_until_conditional(|char| !Self::is_valid_identifier(char), false)
     }
 
     /// Iterates until it reaches the closing character
-    fn eat_until(&mut self, term: &[char]) -> Option<String> {
-        self.eat_until_conditional(|c| term.contains(c))
+    fn eat_until(&mut self, term: &[char], escapeable: bool) -> Option<String> {
+        self.eat_until_conditional(|c| term.contains(c), escapeable)
     }
 
     /// Iterates until it reaches the closing character
-    fn eat_until_conditional<F>(&mut self, func: F) -> Option<String>
+    fn eat_until_conditional<F>(&mut self, func: F, escapeable: bool) -> Option<String>
     where
         F: Fn(&char) -> bool,
     {
         let mut collector = String::new();
 
         while let Some(char) = self.peek() {
+            if escapeable && char == &'\\' {
+                self.next(); // Moves onto the \ char
+
+                if let Some(char) = self.peek() {
+                    let char = match char {
+                        '0' => '\0',
+                        't' => '\t',
+                        'n' => '\n',
+                        'r' => '\r',
+                        _ => *char,
+                    };
+
+                    collector.push(char);
+                    self.next();
+                }
+
+                continue;
+            }
+
             if func(char) {
                 break;
             }

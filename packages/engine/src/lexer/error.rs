@@ -3,7 +3,7 @@ use colored::Colorize;
 
 use crate::cursor::Cursor;
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, strum::AsRefStr)]
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, lang_macro::EnumVariants)]
 pub enum LexerErrorKind {
     #[error("unexpected end of input")]
     UnexpectedEnd,
@@ -39,7 +39,7 @@ impl std::fmt::Display for LexerError {
         writeln!(f, 
             "{}: [{}] {}",
             " error ".on_red(),
-            self.kind.as_ref().bright_red().bold(),
+            self.kind.variant_name().bright_red().bold(),
             self.kind.to_string().bold(),
         )?;
 

@@ -1,0 +1,84 @@
+name: Build
+on:
+  - release
+  - workflow_dispatch
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # ARM
+            args: --target aarch64-apple-darwin
+            name: macos
+          - platform: macos-latest # Intel
+            args: --target x86_64-apple-darwin
+            name: macos
+          - platform: ubuntu-22.04
+            args: ''
+            name: linux
+          - platform: windows-latest
+            args: ''
+            name: windows
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rustup and Cargo
+        run: |
+          rustup update nightly \
+          && rustup default nightly \
+          && rustup component add rust-src --toolchain nightly
+
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Build - Size Opt. (No Color)
+        run: |
+          RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
+          cargo +nightly build \
+            ${{ matrix.args }} \
+            -Z build-std=std,panic_abort \
+            -Z build-std-features="optimize_for_size" \
+            -Z build-std-features=panic_immediate_abort \
+            --profile release-size \
+            --features "no-color"
+
+      - name: Upload Build - Size Opt. (No Color)
+        uses: actions/upload-artifact@v4
+        with:
+          name: lang_cli-${{ matrix.name }}-size-no-color
+          path: target/release-size/lang_cli
+      
+      - name: Build - Size Opt.
+        run: |
+          RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
+          cargo +nightly build \
+            ${{ matrix.args }} \
+            -Z build-std=std,panic_abort \
+            -Z build-std-features="optimize_for_size" \
+            -Z build-std-features=panic_immediate_abort \
+            --profile release-size
+
+      - name: Upload Build - Size Opt.
+        uses: actions/upload-artifact@v4
+        with:
+          name: lang_cli-${{ matrix.name }}-size
+          path: target/release-size/lang_cli
+
+      - name: Build - Speed Opt.
+        run: |
+          RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none -C target-cpu=native" \
+          cargo +nightly build \
+            ${{ matrix.args }} \
+            -Z build-std=std,panic_abort \
+            -Z build-std-features=panic_immediate_abort \
+            --profile release-speed
+
+
+      - name: Upload Build - Speed Opt.
+        uses: actions/upload-artifact@v4
+        with:
+          name: lang_cli-${{ matrix.name }}
+          path: target/release-speed/lang_cli
+      

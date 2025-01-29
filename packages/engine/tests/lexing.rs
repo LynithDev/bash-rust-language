@@ -1,10 +1,10 @@
 macro_rules! token_list_comparison {
     ($name:ident, $code:literal, [$($exp:expr),+]) => {
         #[test]
-        fn $name() -> engine_lib::error::EngineResult<()> {
+        fn $name() -> lang_engine::error::EngineResult<()> {
             let code = $code;
 
-            let mut lexer = engine_lib::lexer::Lexer::create(code, None);
+            let mut lexer = lang_engine::lexer::Lexer::create(code, None);
             let token_list = lexer.tokenize();
 
             let expected = vec![
@@ -25,10 +25,10 @@ macro_rules! token_list_comparison {
 macro_rules! custom_assert {
     ($name:ident, $code:literal, ($lexer:ident) => $block:block) => {
         #[test]
-        fn $name() -> engine_lib::error::EngineResult<()> {
+        fn $name() -> lang_engine::error::EngineResult<()> {
             let code = $code;
 
-            let mut $lexer = engine_lib::lexer::Lexer::create(code, None);
+            let mut $lexer = lang_engine::lexer::Lexer::create(code, None);
             $lexer.tokenize();
 
             $block
@@ -37,7 +37,7 @@ macro_rules! custom_assert {
 }
 
 mod basic_syntax {
-    use engine_lib::lexer::tokens::{Token, TokenType};
+    use lang_engine::lexer::tokens::{Token, TokenType};
 
     token_list_comparison!(
         single_line_comment,
@@ -319,7 +319,7 @@ var test4 = $echo hello world + \"lol\"
 }
 
 mod integer_parsing {
-    use engine_lib::lexer::tokens::{Token, TokenType};
+    use lang_engine::lexer::tokens::{Token, TokenType};
 
     token_list_comparison!(
         integer_parsing,
@@ -477,10 +477,10 @@ mod integer_parsing {
             assert!(lexer.has_errors());
             if let Some(err) = lexer.fetch_errors().first() {
                 match err {
-                    engine_lib::error::EngineError::LexerError(err) => {
+                    lang_engine::error::EngineError::LexerError(err) => {
                         pretty_assertions::assert_eq!(
                             err.kind, 
-                            engine_lib::lexer::LexerErrorKind::IntegerOverflow("9999999999999999999".to_string())
+                            lang_engine::lexer::LexerErrorKind::IntegerOverflow("9999999999999999999".to_string())
                         );
                     },
                     err => return Err(err.clone())

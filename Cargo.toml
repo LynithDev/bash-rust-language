@@ -1,24 +1,39 @@
-[package]
-name = "custom-language-rust"
-version = "0.1.0"
-edition = "2021"
-
 [workspace]
+resolver = "2"
+members = [
+    "packages/cli",
+    "packages/engine",
+    "packages/macro",
+]
+
+[workspace.package]
+edition = "0.2.0"
 
 [workspace.dependencies]
+lang_macro = { path = "packages/macro" }
+lang_engine = { path = "packages/engine" }
+
 # logging
 pretty_env_logger = "0.5"
 log = "0.4.25"
 
 # utils
 thiserror = "2.0.11"
-strum = { version = "0.26", features = ["derive"] }
-colored = { version = "3.0.0" }
-
-[dependencies]
-engine-lib = { path = "engine-lib" }
-pretty_env_logger = { workspace = true }
-log = { workspace = true }
-
-[dev-dependencies]
+colored = "3.0.0"
 pretty_assertions = "1.4.1"
+
+[profile.release]
+strip = true
+debug = false
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.release-speed]
+inherits = "release"
+opt-level = 3
+
+[profile.release-size]
+inherits = "release"
+opt-level = "z"

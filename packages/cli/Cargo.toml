@@ -1,0 +1,16 @@
+[package]
+name = "lang_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lang_engine = { workspace = true }
+
+# logging
+log = { workspace = true }
+pretty_env_logger = { workspace = true }
+
+[features]
+default = ["cli"]
+cli = ["lang_engine/cli"]
+no-color = ["lang_engine/no-color"]

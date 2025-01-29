@@ -1,15 +1,18 @@
 [package]
-name = "engine-lib"
+name = "lang_engine"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 log = { workspace = true }
 thiserror = { workspace = true }
-strum = { workspace = true }
 colored = { workspace = true, optional = true }
+lang_macro = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
 
 [features]
 default = ["cli"]
 cli = ["dep:colored"]
-cli_no_color = ["colored/no-color"]
+no-color = ["colored/no-color"]

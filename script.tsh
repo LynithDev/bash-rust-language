@@ -1,5 +1,1 @@
-match "hello world" {
-    "hello world" => {},
-    "lol" || "world" => {},
-    * => {}
-}
+var test = "

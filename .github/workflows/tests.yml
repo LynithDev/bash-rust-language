@@ -1,0 +1,13 @@
+name: Run Tests
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Rustup and Cargo
+        run: rustup update nightly && rustup default nightly
+      - name: Run Tests
+        run: cargo test
