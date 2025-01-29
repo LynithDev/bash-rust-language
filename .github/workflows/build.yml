@@ -42,6 +42,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
       
+
+        # Size Profile
+
       - name: Build - Size Opt.
         if: matrix.name != 'windows'
         run: ./scripts/build/size.sh ${{ matrix.args }}
@@ -55,6 +58,9 @@ jobs:
         with:
           name: lang_cli-${{ matrix.name }}-${{ matrix.arch }}-size
           path: target/release-size/lang_cli
+
+
+        # Speed Profile
 
       - name: Build - Speed Opt.
         if: matrix.name != 'windows'
