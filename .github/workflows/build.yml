@@ -47,7 +47,7 @@ jobs:
 
       - name: Build - Size Opt.
         if: matrix.name != 'windows'
-        run: ./scripts/build/size.sh ${{ matrix.args }}
+        run: ./scripts/build/size.sh "${{ matrix.args }}"
 
       - name: Build - Size Opt.
         if: matrix.name == 'windows'
@@ -66,7 +66,7 @@ jobs:
         if: matrix.name != 'windows'
         env:
           CPU_NATIVE: ${{ matrix.name }} != "macos" && ${{ matrix.arch }} != "x86_64"
-        run: ./scripts/build/speed.sh ${{ matrix.args }}
+        run: ./scripts/build/speed.sh "${{ matrix.args }}"
 
       - name: Build - Speed Opt.
         if: matrix.name == 'windows'
