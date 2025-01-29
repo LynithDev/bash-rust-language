@@ -24,12 +24,13 @@ pub struct Engine {
 
 impl Engine {
     pub fn create() -> Self {
-        Self {
-
-        }
+        debug!("created engine");
+        Self {}
     }
 
     pub fn exec_file(&mut self, file: &PathBuf) -> EngineResult<i32> {
+        debug!("executing file {file:?}");
+
         let code = if file.is_file() && (file.is_absolute() || file.is_relative()) {
             std::fs::read_to_string(file).map_err(|_| error::EngineError::UnknownError)?
         } else {
@@ -45,8 +46,9 @@ impl Engine {
     }
 
     pub fn exec(&mut self, code: &str) -> EngineResult<i32> {
+        debug!("executing script");
+
         let mut lexer = Lexer::create(code, None);
-        
         println!("{:#?}", lexer.tokenize());
 
         lexer.print_errors();
