@@ -1,7 +1,12 @@
 name: Build
+
 on:
   - release
   - workflow_dispatch
+
+env: 
+  CARGO_TERM_COLOR: always
+
 jobs:
   build:
     strategy:
