@@ -61,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lang_cli-${{ matrix.name }}-${{ matrix.arch }}-size
-          path: target/release-size/lang_cli${{ matrix.ext }}
+          path: target/${{ matrix.target != '' && format('{0}/', matrix.target) || ''}}release-size/lang_cli${{ matrix.ext }}
 
 
         # Speed Profile
