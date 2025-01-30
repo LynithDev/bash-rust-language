@@ -16,3 +16,6 @@ pretty_assertions = { workspace = true }
 default = ["cli"]
 cli = ["dep:colored"]
 no-color = ["colored/no-color"]
+
+[lib]
+doctest = false

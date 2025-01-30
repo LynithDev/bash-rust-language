@@ -3,6 +3,10 @@ name = "lang_macro"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+test = false
+doctest = false
+
 [dependencies]
 lang_macro_core = { workspace = true }
 lang_macro_impl = { workspace = true }

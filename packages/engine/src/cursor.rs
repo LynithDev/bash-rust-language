@@ -1,6 +1,6 @@
 pub type CursorTuple = (u16, u16);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Eq)]
 pub struct Cursor {
     pub col: u16,
     pub line: u16,
@@ -13,6 +13,22 @@ impl Cursor {
             col: 1,
             line: 1,
             index: 0,
+        }
+    }
+
+    pub fn from(line: u16, col: u16) -> Self {
+        Self {
+            col,
+            line,
+            index: 0
+        }
+    }
+
+    pub fn from_full(col: u16, line: u16, index: u32) -> Self {
+        Self {
+            col,
+            line,
+            index
         }
     }
 
@@ -55,6 +71,12 @@ impl Cursor {
     pub fn to_tuple(&self) -> CursorTuple {
         (self.line, self.col)
     } 
+}
+
+impl PartialEq for Cursor {
+    fn eq(&self, other: &Self) -> bool {
+        self.col == other.col && self.line == other.line
+    }
 }
 
 impl From<Cursor> for CursorTuple {

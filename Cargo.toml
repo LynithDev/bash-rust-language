@@ -1,11 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "packages/cli",
-    "packages/engine",
-    "packages/macro",
-    "packages/macro_impl",
-    "packages/macro_core",
+    "packages/*",
 ]
 
 [workspace.package]
@@ -25,6 +21,9 @@ log = "0.4.25"
 thiserror = "2.0.11"
 colored = "3.0.0"
 pretty_assertions = "1.4.1"
+
+[workspace.lib]
+doctest = false
 
 [profile.release]
 strip = true

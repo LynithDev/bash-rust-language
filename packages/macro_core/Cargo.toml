@@ -2,3 +2,7 @@
 name = "lang_macro_core"
 version = "0.1.0"
 edition = "2021"
+
+[lib]
+test = false
+doctest = false
