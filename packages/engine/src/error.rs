@@ -1,20 +1,24 @@
 #[cfg(feature = "cli")]
 use colored::Colorize;
 
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum EngineError {
+use crate::lexer::tokens::LexerTokenKind;
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone)]
+pub enum EngineErrorKind {
     #[error("{0}")]
     LexerError(#[from] crate::lexer::LexerError),
     #[error("{0}")]
     ParserError(#[from] crate::parser::ParserError),
+    #[error("failed to get value as '{0}' from literal '{1}'")]
+    LiteralExtractionError(LexerTokenKind, LexerTokenKind),
     #[error("an unreachable error has occurred. this shouldn't ever happen")]
     Unreachable,
     #[error("an unknown error has occurred")]
     UnknownError,
 }
 
-pub type EngineResult<T> = std::result::Result<T, EngineError>;
-pub type ErrorList = Vec<EngineError>;
+pub type EngineResult<T> = std::result::Result<T, EngineErrorKind>;
+pub type ErrorList = Vec<EngineErrorKind>;
 
 #[cfg(feature = "cli")]
 pub(super) type SourceFile = Box<(Option<std::path::PathBuf>, String)>;

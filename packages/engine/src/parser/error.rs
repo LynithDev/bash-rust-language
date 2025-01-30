@@ -8,10 +8,14 @@ use crate::{cursor::Cursor, lexer::tokens::LexerTokenKind};
 
 #[derive(thiserror::Error, lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
 pub enum ParserErrorKind {
+    #[error("{0}")]
+    EngineError(#[from] crate::error::EngineErrorKind),
+    #[error("couldn't convert lexer token {0} to ast node")]
+    ConvertError(LexerTokenKind),
     #[error("unexpected end of input")]
     UnexpectedEnd,
-    #[error("expected token '{expected:?}' but found {found:?}")]
-    UnexpectedToken { expected: LexerTokenKind, found: Option<LexerTokenKind> },
+    #[error("expected token '{0:?}' but found {1:?}")]
+    UnexpectedToken(LexerTokenKind, Option<LexerTokenKind>),
     #[error("unknown token")]
     UnknownToken
 }
@@ -19,7 +23,7 @@ pub enum ParserErrorKind {
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(not(feature = "cli"), error("{kind}"))]
 pub struct ParserError {
-    pub kind: ParserErrorKind,
+    pub kind: Box<ParserErrorKind>,
     pub start: Cursor,
     pub end: Cursor,
 

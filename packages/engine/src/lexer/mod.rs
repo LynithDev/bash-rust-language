@@ -1,12 +1,12 @@
 use std::{iter::Peekable, str::Chars};
 
 use error::LexerResult;
-use tokens::{LexerToken, LexerTokenKind, LexerTokenList};
+use tokens::{LexerLiteral, LexerToken, LexerTokenKind, LexerTokenList};
 
 use crate::{
     component::{ComponentErrors, ComponentIter},
     constants::{MAX_I32_LEN, MAX_I64_LEN},
-    error::{EngineError, ErrorList},
+    error::{EngineErrorKind, ErrorList},
     Cursor,
 };
 
@@ -71,15 +71,19 @@ impl<'a> Lexer<'a> {
         lexer
     }
 
-    pub fn tokenize(&mut self) -> &LexerTokenList {
+    pub fn tokens(&mut self) -> &LexerTokenList {
+        if !self.tokens.is_empty() {
+            return &self.tokens;
+        }
+
         while self.peek().is_some() {
             let start = self.cursor;
 
             if let Some(char) = self.next() {
                 match self.scan_char(&char) {
-                    Ok(Some(token_type)) => self.add_token(token_type, start),
+                    Ok(Some((token_type, value))) => self.add_token(token_type, value, start),
                     Err(err) => {
-                        self.errors.push(EngineError::LexerError(LexerError {
+                        self.errors.push(EngineErrorKind::LexerError(LexerError {
                             #[cfg(feature = "cli")]
                             source_file: self.get_source_sliced(start, self.cursor),
                             start,
@@ -94,12 +98,15 @@ impl<'a> Lexer<'a> {
 
         let start = self.cursor;
         self.cursor.next_line();
-        self.add_token(LexerTokenKind::EOL, start);
+        self.add_token(LexerTokenKind::EOL, None, start);
 
         &self.tokens
     }
 
-    fn scan_char(&mut self, char: &char) -> LexerResult<Option<LexerTokenKind>> {
+    fn scan_char(
+        &mut self,
+        char: &char,
+    ) -> LexerResult<Option<(LexerTokenKind, Option<Box<LexerLiteral>>)>> {
         macro_rules! check_double {
             ($single_type:expr, $double:tt, $double_type:expr) => {
                 if self.next_if_eq(&$double).is_some() {
@@ -118,148 +125,172 @@ impl<'a> Lexer<'a> {
 
         use LexerTokenKind::*;
 
-        Ok(Some(match char {
-            ' ' => return Ok(None),
-            '\n' => EOL,
+        Ok(Some((
+            match char {
+                ' ' => return Ok(None),
+                '\n' => EOL,
 
-            '=' => match self.peek() {
-                Some(&'=') => {
-                    self.next();
-                    EqualEqual
-                }
+                '=' => match self.peek() {
+                    Some(&'=') => {
+                        self.next();
+                        EqualEqual
+                    }
 
-                Some(&'>') => {
-                    self.next();
-                    Arrow
-                }
+                    Some(&'>') => {
+                        self.next();
+                        Arrow
+                    }
 
-                _ => Equal,
-            },
-            '+' => check_double!(Plus, '=', PlusEqual),
-            '-' => match self.peek() {
-                Some(&'=') => {
-                    self.next();
-                    MinusEqual
-                }
+                    _ => Equal,
+                },
+                '+' => check_double!(Plus, '=', PlusEqual),
+                '-' => match self.peek() {
+                    Some(&'=') => {
+                        self.next();
+                        MinusEqual
+                    }
 
-                Some(&('0'..='9')) => {
-                    let Some(char) = self.next() else {
+                    Some(&('0'..='9')) => {
+                        let Some(char) = self.next() else {
+                            return Ok(None);
+                        };
+
+                        return Ok(Some((Integer, Some(Box::from(LexerLiteral::Integer(-self.eat_number(char)?))))));
+                    }
+                    _ => Minus,
+                },
+                '*' => check_double!(Multiply, '=', MultiplyEqual),
+
+                '/' => match self.peek() {
+                    Some(&'/') => {
+                        self.consume_single_line_comment()?;
                         return Ok(None);
-                    };
+                    }
+                    Some(&'*') => {
+                        self.consume_multi_line_comment()?;
+                        return Ok(None);
+                    }
+                    Some(&'=') => {
+                        self.next();
+                        DivideEqual
+                    }
+                    _ => Divide,
+                },
 
-                    Integer(-self.eat_number(char)?)
+                '!' => check_double!(Not, '=', NotEqual),
+                '<' => check_double!(LesserThan, '=', LesserEqualThan),
+                '>' => check_double!(GreaterThan, '=', GreaterEqualThan),
+                _ if double!('&', '&') => And,
+                _ if double!('|', '|') => Or,
+
+                '(' => LParam,
+                ')' => RParam,
+                '{' => LBracket,
+                '}' => RBracket,
+                ',' => Comma,
+                ':' => Colon,
+                _ if double!('.', '.') => {
+                    if self.next() == Some('=') {
+                        RangeInclusive
+                    } else {
+                        Range
+                    }
                 }
-                _ => Minus,
+
+                '0'..='9' => {
+                    return Ok(Some((
+                        Integer,
+                        Some(Box::from(LexerLiteral::Integer(self.eat_number(*char)?))),
+                    )))
+                }
+                '"' => return Ok(Some(self.consume_string()?)),
+                '$' => return Ok(Some(self.consume_shell_command()?)),
+
+                char => {
+                    let consumed = self.eat_word().unwrap_or_default();
+
+                    let word = format!("{char}{consumed}");
+                    match word.as_str() {
+                        "var" => Var,
+                        "fn" => Function,
+                        "for" => For,
+                        "while" => While,
+                        "loop" => Loop,
+                        "if" => If,
+                        "else" => Else,
+                        "match" => Match,
+                        "break" => Break,
+                        "continue" => Continue,
+                        "return" => Return,
+                        "in" => In,
+                        "is" => Is,
+
+                        "@include" => Include,
+                        "@const" => Const,
+
+                        "not" => Not,
+                        "and" => And,
+                        "or" => Or,
+
+                        "true" => return Ok(Some((Boolean, Some(Box::from(LexerLiteral::Boolean(true)))))),
+                        "false" => return Ok(Some((Boolean, Some(Box::from(LexerLiteral::Boolean(false)))))),
+
+                        _ if Self::is_valid_identifier(char) => return Ok(Some((Identifier, Some(Box::from(LexerLiteral::Identifier(Box::from(word))))))),
+                        _ => return Err(LexerErrorKind::UnknownToken),
+                    }
+                }
             },
-            '*' => check_double!(Multiply, '=', MultiplyEqual),
-
-            '/' => match self.peek() {
-                Some(&'/') => return self.consume_single_line_comment(),
-                Some(&'*') => return self.consume_multi_line_comment(),
-                Some(&'=') => {
-                    self.next();
-                    DivideEqual
-                }
-                _ => Divide,
-            },
-
-            '!' => check_double!(Not, '=', NotEqual),
-            '<' => check_double!(LesserThan, '=', LesserEqualThan),
-            '>' => check_double!(GreaterThan, '=', GreaterEqualThan),
-            _ if double!('&', '&') => And,
-            _ if double!('|', '|') => Or,
-
-            '(' => LParam,
-            ')' => RParam,
-            '{' => LBracket,
-            '}' => RBracket,
-            ',' => Comma,
-            ':' => Colon,
-            _ if double!('.', '.') => {
-                if self.next() == Some('=') {
-                    RangeInclusive
-                } else {
-                    Range
-                }
-            }
-
-            '0'..='9' => Integer(self.eat_number(*char)?),
-            '"' => self.consume_string()?,
-
-            '$' => self.consume_shell_command()?,
-
-            char => {
-                let consumed = self.eat_word().unwrap_or_default();
-
-                let word = format!("{char}{consumed}");
-                match word.as_str() {
-                    "var" => Var,
-                    "fn" => Function,
-                    "for" => For,
-                    "while" => While,
-                    "loop" => Loop,
-                    "if" => If,
-                    "else" => Else,
-                    "match" => Match,
-                    "break" => Break,
-                    "continue" => Continue,
-                    "return" => Return,
-                    "in" => In,
-                    "is" => Is,
-
-                    "@include" => Include,
-                    "@const" => Const,
-
-                    "not" => Not,
-                    "and" => And,
-                    "or" => Or,
-
-                    "true" => Boolean(true),
-                    "false" => Boolean(false),
-
-                    _ if Self::is_valid_identifier(char) => Identifier(Box::from(word)),
-                    _ => return Err(LexerErrorKind::UnknownToken),
-                }
-            }
-        }))
+            None,
+        )))
     }
 
-    fn add_token(&mut self, token_type: LexerTokenKind, start: Cursor) {
+    fn add_token(
+        &mut self,
+        token_type: LexerTokenKind,
+        value: Option<Box<LexerLiteral>>,
+        start: Cursor,
+    ) {
         self.tokens.push(LexerToken {
             kind: token_type,
             start,
             end: self.cursor,
+            value,
         });
     }
 
     /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
-    fn consume_single_line_comment(&mut self) -> LexerResult<Option<LexerTokenKind>> {
+    fn consume_single_line_comment(&mut self) -> LexerResult<()> {
         self.eat_until(&['\n'], false);
         self.next();
 
-        Ok(None)
+        Ok(())
     }
 
     /// Consumes a multi-line comment (skips until it reaches */)
-    fn consume_multi_line_comment(&mut self) -> LexerResult<Option<LexerTokenKind>> {
+    fn consume_multi_line_comment(&mut self) -> LexerResult<()> {
         self.skip_until(&['*']);
         self.expect_char(&'*')?;
         if self.expect(&'/').is_err() {
             return self.consume_multi_line_comment();
         }
 
-        Ok(None)
+        Ok(())
     }
 
     /// Attempts to return a [`TokenType::String`]
-    fn consume_string(&mut self) -> LexerResult<LexerTokenKind> {
+    fn consume_string(&mut self) -> LexerResult<(LexerTokenKind, Option<Box<LexerLiteral>>)> {
         let string = self.eat_until(&['"', '\n'], true).unwrap_or_default();
         self.expect_char(&'"')?;
-        Ok(LexerTokenKind::String(Box::from(string)))
+        Ok((
+            LexerTokenKind::String,
+            Some(Box::from(LexerLiteral::String(Box::from(string)))),
+        ))
     }
 
     /// Attempts to return a [`TokenType::ShellCommand`]
-    fn consume_shell_command(&mut self) -> LexerResult<LexerTokenKind> {
+    fn consume_shell_command(
+        &mut self,
+    ) -> LexerResult<(LexerTokenKind, Option<Box<LexerLiteral>>)> {
         let cmd_name = self
             .eat_until(&[' ', '\t', '\n', '('], false)
             .ok_or(LexerErrorKind::UnexpectedEnd)?;
@@ -281,9 +312,10 @@ impl<'a> Lexer<'a> {
             _ => None,
         };
 
-        Ok(LexerTokenKind::ShellCommand(Box::from((
-            cmd_name, cmd_args,
-        ))))
+        Ok((
+            LexerTokenKind::ShellCommand,
+            Some(Box::from(LexerLiteral::ShellCommand(Box::from((cmd_name, cmd_args))))),
+        ))
     }
 
     /// Returns true if the char is a valid character for an identifier, false otherwies

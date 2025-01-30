@@ -20,18 +20,19 @@ pub trait ComponentErrors {
 
     #[cfg(feature = "cli")]
     fn get_source_sliced(&self, start: crate::Cursor, end: crate::Cursor) -> crate::error::SourceFile {
-        let (path, input) = *self.source().clone();
+        let source_file = self.source();
 
         let start_index = start.index() as usize;
         let end_index = end.index() as usize;
 
-        let source = &input[start_index..end_index];
+        let source = &source_file.as_ref().1[start_index..end_index];
 
-        Box::from((path, source.to_string()))
+        Box::from((source_file.as_ref().0.clone(), source.to_string()))
     }
 }
 
 pub trait ComponentIter<'a, C, T, I> where 
+    C: PartialEq<T> + PartialEq,
     T: PartialEq<C> + PartialEq + Clone + 'a,
     I: Iterator<Item = T> + 'a {
 
@@ -49,7 +50,7 @@ pub trait ComponentIter<'a, C, T, I> where
         }
     }
 
-    /// Iterates to the next character
+    /// Iterates to the next item
     fn next(&mut self) -> Option<T> {
         if let Some(item) = self.get_iter().next() {
             self.cursor_next(&item);
@@ -59,7 +60,7 @@ pub trait ComponentIter<'a, C, T, I> where
         }
     }
 
-    /// Iterates to the next character if the next character is equal to the char argument
+    /// Iterates to the next item if the next item is equal to the item argument
     fn next_if_eq(&mut self, item: &C) -> Option<T> {
         if self.peek_is(item) {
             self.next()
@@ -68,7 +69,16 @@ pub trait ComponentIter<'a, C, T, I> where
         }
     }
 
-    /// Expects a character to be there
+    /// Iterates to the next item if the next item is equal to the item argument
+    fn next_if_eq_mul(&mut self, items: &[C]) -> Option<T> {
+        if self.peek().is_some_and(|t| items.iter().any(|c| c == t)) {
+            self.next()
+        } else {
+            None
+        }
+    }
+
+    /// Expects a item to be there
     fn expect(&mut self, expected: &C) -> std::result::Result<T, Option<T>> {
         let Some(item) = self.next_if_eq(expected) else {
             return Err(None);
@@ -81,7 +91,7 @@ pub trait ComponentIter<'a, C, T, I> where
         }
     }
 
-    /// Checks if the next character is equal to the char argument
+    /// Checks if the next item is equal to the item argument
     fn peek_is(&mut self, item: &C) -> bool {
         if let Some(peek) = self.peek() {
             peek == item
@@ -90,7 +100,7 @@ pub trait ComponentIter<'a, C, T, I> where
         }
     }
 
-    /// Returns the next character if exists without iterating
+    /// Returns the next item if exists without iterating
     fn peek<'b>(&'b mut self) -> Option<&'b T>
     where I: 'b {
         self.get_iter().peek()
