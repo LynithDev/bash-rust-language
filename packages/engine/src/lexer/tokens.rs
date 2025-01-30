@@ -1,8 +1,8 @@
-use crate::cursor::CursorTuple;
+use crate::Cursor;
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Clone)]
-pub enum TokenType {
+#[derive(lang_macro::EnumVariants, Debug, PartialEq, Eq, Clone)]
+pub enum LexerTokenKind {
     // keywords
 
     /// `var`           - e.g. var test = 5
@@ -127,10 +127,16 @@ pub enum TokenType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Token {
-    pub token_type: TokenType,
-    pub start: CursorTuple,
-    pub end: CursorTuple,
+pub struct LexerToken {
+    pub kind: LexerTokenKind,
+    pub start: Cursor,
+    pub end: Cursor,
 }
 
-pub type TokenList = Vec<Token>;
+impl PartialEq<LexerTokenKind> for LexerToken {
+    fn eq(&self, other: &LexerTokenKind) -> bool {
+        &self.kind == other
+    }
+}
+
+pub type LexerTokenList = Vec<LexerToken>;

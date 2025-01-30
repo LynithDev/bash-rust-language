@@ -6,14 +6,16 @@
 
 use std::path::PathBuf;
 
+use component::ComponentErrors;
 use error::EngineResult;
 use lexer::Lexer;
 
 pub mod lexer;
+pub mod parser;
 pub mod error;
 pub mod constants;
+pub mod component;
 mod cursor;
-mod utils;
 
 pub use cursor::Cursor;
 
@@ -37,7 +39,7 @@ impl Engine {
             return Err(error::EngineError::UnknownError);
         };
 
-        let mut lexer = Lexer::create(&code, Some(file.clone()));
+        let mut lexer = Lexer::create(&code, #[cfg(feature = "cli")] Some(file.clone()));
         println!("{:#?}", lexer.tokenize());
 
         lexer.print_errors();
@@ -48,7 +50,7 @@ impl Engine {
     pub fn exec(&mut self, code: &str) -> EngineResult<i32> {
         debug!("executing script");
 
-        let mut lexer = Lexer::create(code, None);
+        let mut lexer = Lexer::create(code, #[cfg(feature = "cli")] None);
         println!("{:#?}", lexer.tokenize());
 
         lexer.print_errors();

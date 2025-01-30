@@ -1,10 +1,13 @@
-use std::{iter::Peekable, path::PathBuf, str::Chars};
+use std::{iter::Peekable, str::Chars};
 
 use error::LexerResult;
-use tokens::{Token, TokenList, TokenType};
+use tokens::{LexerToken, LexerTokenKind, LexerTokenList};
 
 use crate::{
-    constants::{MAX_I32_LEN, MAX_I64_LEN}, Cursor, error::{EngineError, ErrorList}
+    component::{ComponentErrors, ComponentIter},
+    constants::{MAX_I32_LEN, MAX_I64_LEN},
+    error::{EngineError, ErrorList},
+    Cursor,
 };
 
 pub use error::{LexerError, LexerErrorKind};
@@ -16,44 +19,59 @@ pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
     errors: ErrorList,
     cursor: Cursor,
-    tokens: TokenList,
+    tokens: LexerTokenList,
     max_int_len: u8,
-    
-    #[cfg(feature = "cli")]
-    source: &'a str,
 
     #[cfg(feature = "cli")]
-    path: Option<PathBuf>,
+    source: crate::error::SourceFile,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn create(input: &'a str, path: Option<PathBuf>) -> Self {
-        Self::create_bits(input, path, MAX_I64_LEN)
+    pub fn create(
+        input: &'a str,
+        #[cfg(feature = "cli")] path: Option<std::path::PathBuf>,
+    ) -> Self {
+        Self::create_bits(
+            input,
+            #[cfg(feature = "cli")]
+            path,
+            MAX_I64_LEN,
+        )
     }
 
-    pub fn create_32b(input: &'a str, path: Option<PathBuf>) -> Self {
-        Self::create_bits(input, path, MAX_I32_LEN)
+    pub fn create_32b(
+        input: &'a str,
+        #[cfg(feature = "cli")] path: Option<std::path::PathBuf>,
+    ) -> Self {
+        Self::create_bits(
+            input,
+            #[cfg(feature = "cli")]
+            path,
+            MAX_I32_LEN,
+        )
     }
 
-    pub fn create_bits(input: &'a str, path: Option<PathBuf>, max_int_len: u8) -> Self {
+    pub fn create_bits(
+        input: &'a str,
+        #[cfg(feature = "cli")] path: Option<std::path::PathBuf>,
+        max_int_len: u8,
+    ) -> Self {
         let lexer = Self {
             chars: input.trim().chars().peekable(),
             errors: ErrorList::new(),
             cursor: Cursor::create(),
-            tokens: TokenList::new(),
+            tokens: LexerTokenList::new(),
             max_int_len,
 
             #[cfg(feature = "cli")]
-            source: input,
-
-            #[cfg(feature = "cli")]
-            path,
+            source: Box::from((path, input.to_string())),
         };
+
         debug!("created lexer");
         lexer
     }
 
-    pub fn tokenize(&mut self) -> &TokenList {
+    pub fn tokenize(&mut self) -> &LexerTokenList {
         while self.peek().is_some() {
             let start = self.cursor;
 
@@ -63,13 +81,12 @@ impl<'a> Lexer<'a> {
                     Err(err) => {
                         self.errors.push(EngineError::LexerError(LexerError {
                             #[cfg(feature = "cli")]
-                            source_file: self.get_source_file(start, self.cursor),
+                            source_file: self.get_source_sliced(start, self.cursor),
                             start,
                             end: self.cursor,
                             kind: err,
-
                         }));
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -77,38 +94,12 @@ impl<'a> Lexer<'a> {
 
         let start = self.cursor;
         self.cursor.next_line();
-        self.add_token(TokenType::EOL, start);
+        self.add_token(LexerTokenKind::EOL, start);
 
         &self.tokens
     }
 
-    pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn fetch_errors(&self) -> &ErrorList {
-        &self.errors
-    }
-
-    pub fn print_errors(&self) {
-        for error in self.fetch_errors() {
-            println!("{}", error)
-        }
-    }
-
-    #[cfg(feature = "cli")]
-    fn get_source_file(&self, start: Cursor, end: Cursor) -> error::SourceFile {
-        let path = self.path.clone();
-
-        let start_index = dbg!(start).index() as usize;
-        let end_index = dbg!(end).index() as usize;
-
-        let source = &self.source[start_index..end_index];
-
-        Box::from((path, source.to_string()))
-    }
-
-    fn scan_char(&mut self, char: &char) -> LexerResult<Option<TokenType>> {
+    fn scan_char(&mut self, char: &char) -> LexerResult<Option<LexerTokenKind>> {
         macro_rules! check_double {
             ($single_type:expr, $double:tt, $double_type:expr) => {
                 if self.next_if_eq(&$double).is_some() {
@@ -125,7 +116,7 @@ impl<'a> Lexer<'a> {
             };
         }
 
-        use TokenType::*;
+        use LexerTokenKind::*;
 
         Ok(Some(match char {
             ' ' => return Ok(None),
@@ -141,7 +132,7 @@ impl<'a> Lexer<'a> {
                     self.next();
                     Arrow
                 }
-                
+
                 _ => Equal,
             },
             '+' => check_double!(Plus, '=', PlusEqual),
@@ -176,7 +167,7 @@ impl<'a> Lexer<'a> {
             '<' => check_double!(LesserThan, '=', LesserEqualThan),
             '>' => check_double!(GreaterThan, '=', GreaterEqualThan),
             _ if double!('&', '&') => And,
-            _ if double!('|', '|') => Or, 
+            _ if double!('|', '|') => Or,
 
             '(' => LParam,
             ')' => RParam,
@@ -227,22 +218,22 @@ impl<'a> Lexer<'a> {
                     "false" => Boolean(false),
 
                     _ if Self::is_valid_identifier(char) => Identifier(Box::from(word)),
-                    _ => return Err(LexerErrorKind::UnknownToken)
+                    _ => return Err(LexerErrorKind::UnknownToken),
                 }
             }
         }))
     }
 
-    fn add_token(&mut self, token_type: TokenType, start: Cursor) {
-        self.tokens.push(Token {
-            token_type,
-            start: start.to_tuple(),
-            end: self.cursor.to_tuple(),
+    fn add_token(&mut self, token_type: LexerTokenKind, start: Cursor) {
+        self.tokens.push(LexerToken {
+            kind: token_type,
+            start,
+            end: self.cursor,
         });
     }
 
     /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
-    fn consume_single_line_comment(&mut self) -> LexerResult<Option<TokenType>> {
+    fn consume_single_line_comment(&mut self) -> LexerResult<Option<LexerTokenKind>> {
         self.eat_until(&['\n'], false);
         self.next();
 
@@ -250,9 +241,9 @@ impl<'a> Lexer<'a> {
     }
 
     /// Consumes a multi-line comment (skips until it reaches */)
-    fn consume_multi_line_comment(&mut self) -> LexerResult<Option<TokenType>> {
+    fn consume_multi_line_comment(&mut self) -> LexerResult<Option<LexerTokenKind>> {
         self.skip_until(&['*']);
-        self.expect(&'*')?;
+        self.expect_char(&'*')?;
         if self.expect(&'/').is_err() {
             return self.consume_multi_line_comment();
         }
@@ -261,14 +252,14 @@ impl<'a> Lexer<'a> {
     }
 
     /// Attempts to return a [`TokenType::String`]
-    fn consume_string(&mut self) -> LexerResult<TokenType> {
+    fn consume_string(&mut self) -> LexerResult<LexerTokenKind> {
         let string = self.eat_until(&['"', '\n'], true).unwrap_or_default();
-        self.expect(&'"')?;
-        Ok(TokenType::String(Box::from(string)))
+        self.expect_char(&'"')?;
+        Ok(LexerTokenKind::String(Box::from(string)))
     }
 
     /// Attempts to return a [`TokenType::ShellCommand`]
-    fn consume_shell_command(&mut self) -> LexerResult<TokenType> {
+    fn consume_shell_command(&mut self) -> LexerResult<LexerTokenKind> {
         let cmd_name = self
             .eat_until(&[' ', '\t', '\n', '('], false)
             .ok_or(LexerErrorKind::UnexpectedEnd)?;
@@ -281,7 +272,7 @@ impl<'a> Lexer<'a> {
             Some('(') => {
                 self.next();
                 if let Some(res) = self.eat_until(&['\n', '\0', ')'], true) {
-                    self.expect(&')')?;
+                    self.expect_char(&')')?;
                     Some(res)
                 } else {
                     None
@@ -290,7 +281,9 @@ impl<'a> Lexer<'a> {
             _ => None,
         };
 
-        Ok(TokenType::ShellCommand(Box::from((cmd_name, cmd_args))))
+        Ok(LexerTokenKind::ShellCommand(Box::from((
+            cmd_name, cmd_args,
+        ))))
     }
 
     /// Returns true if the char is a valid character for an identifier, false otherwies
@@ -323,19 +316,17 @@ impl<'a> Lexer<'a> {
 
             '0' => {
                 let radix = match self.peek() {
-                    Some(char) if char.is_ascii_alphabetic() => {
-                        match char {
-                            'b' => 2,
-                            'o' => 8,
-                            'd' => 10,
-                            'x' => 16,
-                            _ => {
-                                error = Some(LexerErrorKind::InvalidNumberNotation);
-                                10
-                            },
+                    Some(char) if char.is_ascii_alphabetic() => match char {
+                        'b' => 2,
+                        'o' => 8,
+                        'd' => 10,
+                        'x' => 16,
+                        _ => {
+                            error = Some(LexerErrorKind::InvalidNumberNotation);
+                            10
                         }
                     },
-                    _ => return Ok(0)
+                    _ => return Ok(0),
                 };
 
                 self.next();
@@ -443,61 +434,32 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn skip_until(&mut self, term: &[char]) {
-        while let Some(char) = self.peek() {
-            if term.contains(char) {
-                break;
-            }
-
-            self.next();
-        }
-    }
-
-    /// Iterates to the next character
-    fn next(&mut self) -> Option<char> {
-        if let Some(char) = self.chars.next() {
-            self.cursor.next(&char);
-            Some(char)
-        } else {
-            None
-        }
-    }
-
-    /// Iterates to the next character if the next character is equal to the char argument
-    fn next_if_eq(&mut self, char: &char) -> Option<char> {
-        if self.peek_is(char) {
-            self.next()
-        } else {
-            None
-        }
-    }
-
-    /// Expects a character to be there
-    fn expect(&mut self, expected: &char) -> LexerResult<char> {
-        let Some(char) = self.next_if_eq(expected) else {
-            return Err(LexerErrorKind::UnexpectedCharacter {
+    fn expect_char(&mut self, expected: &char) -> LexerResult<char> {
+        self.expect(expected)
+            .map_err(|found| LexerErrorKind::UnexpectedCharacter {
                 expected: expected.to_string(),
-                found: None,
-            });
-        };
-
-        if &char == expected {
-            Ok(char)
-        } else {
-            Err(LexerErrorKind::UnexpectedCharacter {
-                expected: expected.to_string(),
-                found: Some(char),
+                found,
             })
-        }
+    }
+}
+
+impl ComponentErrors for Lexer<'_> {
+    fn fetch_errors(&self) -> &ErrorList {
+        &self.errors
     }
 
-    /// Checks if the next character is equal to the char argument
-    fn peek_is(&mut self, char: &char) -> bool {
-        self.peek().eq(&Some(char))
+    #[cfg(feature = "cli")]
+    fn source(&self) -> &crate::error::SourceFile {
+        &self.source
+    }
+}
+
+impl<'a> ComponentIter<'a, char, char, Chars<'a>> for Lexer<'a> {
+    fn get_iter(&mut self) -> &mut Peekable<Chars<'a>> {
+        &mut self.chars
     }
 
-    /// Returns the next character if exists without iterating
-    fn peek(&mut self) -> Option<&char> {
-        self.chars.peek()
+    fn cursor_next(&mut self, item: &char) {
+        self.cursor.next(item);
     }
 }

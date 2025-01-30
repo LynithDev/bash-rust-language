@@ -4,13 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-lang_engine = { workspace = true }
+lang_engine = { workspace = true, features = ["cli"] }
 
 # logging
 log = { workspace = true }
 pretty_env_logger = { workspace = true }
 
 [features]
-default = ["cli"]
-cli = ["lang_engine/cli"]
+default = []
 no-color = ["lang_engine/no-color"]

@@ -1,11 +1,11 @@
+pub type CursorTuple = (u16, u16);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Cursor {
     pub col: u16,
     pub line: u16,
     index: u32,
 }
-
-pub type CursorTuple = (u16, u16);
 
 impl Cursor {
     pub fn create() -> Self {
@@ -60,5 +60,20 @@ impl Cursor {
 impl From<Cursor> for CursorTuple {
     fn from(val: Cursor) -> Self {
         val.to_tuple()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WithCursor<T> {
+    pub value: T,
+    pub cursor: Cursor
+}
+
+impl<T> WithCursor<T> {
+    pub fn create(value: T) -> Self {
+        Self {
+            value,
+            cursor: Cursor::create()
+        }
     }
 }

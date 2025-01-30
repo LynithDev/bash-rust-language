@@ -86,6 +86,19 @@ dependencies = [
 name = "lang_macro"
 version = "0.1.0"
 dependencies = [
+ "lang_macro_core",
+ "lang_macro_impl",
+]
+
+[[package]]
+name = "lang_macro_core"
+version = "0.1.0"
+
+[[package]]
+name = "lang_macro_impl"
+version = "0.1.0"
+dependencies = [
+ "lang_macro_core",
  "quote",
  "syn",
 ]

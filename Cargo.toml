@@ -4,14 +4,18 @@ members = [
     "packages/cli",
     "packages/engine",
     "packages/macro",
+    "packages/macro_impl",
+    "packages/macro_core",
 ]
 
 [workspace.package]
 edition = "0.2.0"
 
 [workspace.dependencies]
-lang_macro = { path = "packages/macro" }
 lang_engine = { path = "packages/engine" }
+lang_macro = { path = "packages/macro" }
+lang_macro_core = { path = "packages/macro_core" }
+lang_macro_impl = { path = "packages/macro_impl" }
 
 # logging
 pretty_env_logger = "0.5"
