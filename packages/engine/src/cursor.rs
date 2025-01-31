@@ -1,88 +1,64 @@
-pub type CursorTuple = (u16, u16);
+use std::fmt::Debug;
 
-#[derive(Debug, Clone, Copy, Eq)]
-pub struct Cursor {
-    pub col: u16,
-    pub line: u16,
-    index: u32,
-}
+#[derive(Clone, Copy, Eq)]
+pub struct Cursor(u16, u16, u32);
 
-impl Cursor {
-    pub fn create() -> Self {
-        Self {
-            col: 1,
-            line: 1,
-            index: 0,
-        }
+impl Debug for Cursor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Cursor({}:{}@{})", self.0, self.1, self.2)
     }
-
-    pub fn from(line: u16, col: u16) -> Self {
-        Self {
-            col,
-            line,
-            index: 0
-        }
-    }
-
-    pub fn from_full(col: u16, line: u16, index: u32) -> Self {
-        Self {
-            col,
-            line,
-            index
-        }
-    }
-
-    /// Goes to the new line if needed, based on the character
-    pub fn next(&mut self, char: &char) {
-        if char.eq(&'\n') {
-            self.next_line();
-        } else {
-            self.next_col();
-        }
-    }
-    
-    /// Moves the cursor to the next column
-    pub fn next_col(&mut self) {
-        self.col += 1;
-
-        self.index += 1;
-    }
-    
-    /// Moves the cursor to the next line and resets the column to 0
-    pub fn next_line(&mut self) {
-        self.line += 1;
-        self.col = 1;
-
-        self.index += 1;
-    }
-    
-    /// Gets the index in the input file of the cursor
-    pub fn index(&self) -> u32 {
-        self.index
-    } 
-    
-    /// Resets the cursor back to line 1 column 1
-    pub fn reset(&mut self) {
-        self.col = 1;
-        self.line = 1;
-    }
-
-    /// Returns a (line, col) tuple
-    pub fn to_tuple(&self) -> CursorTuple {
-        (self.line, self.col)
-    } 
 }
 
 impl PartialEq for Cursor {
     fn eq(&self, other: &Self) -> bool {
-        self.col == other.col && self.line == other.line
+        self.0 == other.0 && self.1 == other.1
     }
 }
 
-impl From<Cursor> for CursorTuple {
-    fn from(val: Cursor) -> Self {
-        val.to_tuple()
+impl Cursor {
+    pub fn create() -> Self {
+        Self::from(1, 1)
     }
+
+    pub fn from(col: u16, line: u16) -> Self {
+        Self::from_full(col, line, 0)
+    }
+
+    pub fn from_full(col: u16, line: u16, index: u32) -> Self {
+        Self(col, line, index)
+    }
+    
+    /// Moves the cursor
+    pub fn next_col(&mut self) {
+        self.1 += 1;
+        self.2 += 1;
+    }
+
+    pub fn next_line(&mut self) {
+        self.0 += 1;
+        self.1 = 1;
+        self.2 += 1;
+    }
+    
+    /// Resets the cursor
+    pub fn reset(&mut self) {
+        *self = Self::create();
+    }
+
+    /// Gets the line
+    pub fn line(&self) -> u16 {
+        self.0
+    }
+
+    /// Gets the column
+    pub fn col(&self) -> u16 {
+        self.1
+    }
+    
+    /// Gets the index in the input file of the cursor
+    pub fn index(&self) -> u32 {
+        self.2
+    } 
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,9 +75,9 @@ impl<T> WithCursor<T> {
 
     pub fn create_with(start: Cursor, end: Cursor, value: T) -> Self {
         Self {
-            value,
             start,
             end,
+            value,
         }
     }
 }

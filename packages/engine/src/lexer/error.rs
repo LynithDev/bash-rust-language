@@ -15,7 +15,7 @@ pub enum LexerErrorKind {
     #[error("overflowing integer '{0}'")]
     IntegerOverflow(String),
     #[error("expected character '{expected}' but found {found:?}")]
-    UnexpectedCharacter { expected: String, found: Option<char> },
+    ExpectedCharacter { expected: String, found: Option<char> },
     #[error("unknown token")]
     UnknownToken
 }

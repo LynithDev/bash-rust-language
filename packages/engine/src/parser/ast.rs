@@ -25,10 +25,10 @@ pub enum Expression {
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
-    While(Box<(Expression, Block)>),
-    For(Box<(Variable, Expression, Block)>),
-    Return(Box<Option<Expression>>),
-    Expression(Box<Expression>),
+    While(Box<(WithCursor<Expression>, Block)>),
+    For(Box<(Variable, WithCursor<Expression>, Block)>),
+    Return(Box<Option<WithCursor<Expression>>>),
+    Expression(Box<WithCursor<Expression>>),
     Continue,
     Break,
     Variable(Box<Variable>),

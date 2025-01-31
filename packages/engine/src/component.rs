@@ -25,7 +25,9 @@ pub trait ComponentErrors {
         let start_index = start.index() as usize;
         let end_index = end.index() as usize;
 
-        let source = &source_file.as_ref().1[start_index..end_index];
+        let code = &source_file.as_ref().1;
+
+        let source = &code[start_index..end_index.min(code.len())];
 
         Box::from((source_file.as_ref().0.clone(), source.to_string()))
     }

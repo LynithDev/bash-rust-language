@@ -5,7 +5,7 @@ macro_rules! token_list_comparison {
             let code = $code;
 
             let mut lexer = lang_engine::lexer::Lexer::create(code, None);
-            let token_list = lexer.tokenize();
+            let token_list = lexer.tokens();
 
             println!("{:#?}", token_list);
 
@@ -33,7 +33,7 @@ macro_rules! custom_assert {
             let code = $code;
 
             let mut $lexer = lang_engine::lexer::Lexer::create(code, None);
-            $lexer.tokenize();
+            $lexer.tokens();
 
             $block
         }
@@ -49,8 +49,8 @@ mod basic_syntax {
         [LexerToken {
             value: None,
             start: Cursor::from(1, 15),
-            end: Cursor::from(2, 1),
-            kind: LexerTokenKind::EOL
+            end: Cursor::from(1, 15),
+            kind: LexerTokenKind::EOF
         }]
     );
 
@@ -93,8 +93,8 @@ mod basic_syntax {
             LexerToken {
                 value: None,
                 start: Cursor::from(5, 17),
-                end: Cursor::from(6, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(5, 17),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -130,8 +130,8 @@ mod basic_syntax {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 14),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 14),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -202,8 +202,8 @@ var my_str = \"hello world\"
             LexerToken {
                 value: None,
                 start: Cursor::from(2, 27),
-                end: Cursor::from(3, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(2, 27),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -348,8 +348,8 @@ var test4 = $echo hello world + \"lol\"
             LexerToken {
                 value: None,
                 start: Cursor::from(4, 38),
-                end: Cursor::from(5, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(4, 38),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -371,8 +371,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 3),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 3),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -390,8 +390,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 4),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 4),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -409,8 +409,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 10),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 10),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -428,8 +428,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 5),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 5),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -447,8 +447,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 6),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 6),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -466,8 +466,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 5),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 5),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -485,8 +485,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(1, 5),
-                end: Cursor::from(2, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(1, 5),
+                kind: LexerTokenKind::EOF
             }
         ]
     );
@@ -519,8 +519,8 @@ mod integer_parsing {
             LexerToken {
                 value: None,
                 start: Cursor::from(2, 27),
-                end: Cursor::from(3, 1),
-                kind: LexerTokenKind::EOL
+                end: Cursor::from(2, 27),
+                kind: LexerTokenKind::EOF
             }
         ]
     );

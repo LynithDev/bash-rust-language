@@ -49,14 +49,14 @@ where T: lang_macro::EnumVariantsTrait + ToString {
                 "{}{}{}{}{}",
                 path,
                 ":".black(),
-                self.start().line,
+                self.start().line(),
                 ":".black(),
-                self.start().col,
+                self.start().col(),
             ).bold()
         )?;
 
-        let lines = (self.end().line - self.start().line) + 1;
-        let max_line_len = self.end().line.to_string().len();
+        let lines = (self.end().line() - self.start().line()) + 1;
+        let max_line_len = self.end().line().to_string().len();
 
         writeln!(f,
             "   {} {}",
@@ -65,7 +65,7 @@ where T: lang_macro::EnumVariantsTrait + ToString {
         )?;
 
         for index in 0..lines {
-            let line = (self.start().line + index).to_string();
+            let line = (self.start().line() + index).to_string();
             let line_len = line.len();
 
             writeln!(f,

@@ -1,7 +1,8 @@
 use std::{iter::Peekable, slice::Iter};
 
 use ast::{
-    ArithmeticOperator, AssignmentOperator, Expression, Literal, LogicalOperator, ProgramTree, Statement, UnaryOperator, Variable
+    ArithmeticOperator, AssignmentOperator, Expression, Literal, LogicalOperator, ProgramTree,
+    Statement, UnaryOperator, Variable,
 };
 use error::ParserResult;
 
@@ -56,10 +57,11 @@ impl<'a> Parser<'a> {
                         start: token.start,
                         end: self.cursor,
                         kind: Box::new(err),
+
                         #[cfg(feature = "cli")]
                         source_file: self.get_source_sliced(token.start, self.cursor),
                     }));
-                }
+                },
                 _ => {}
             }
         }
@@ -69,17 +71,19 @@ impl<'a> Parser<'a> {
 
     fn parse_statement(&mut self, token: &LexerToken) -> ParserResult<Option<Statement>> {
         use LexerTokenKind::*;
-        Ok(Some(match token.kind {
-            Var => self.parse_var_decl()?,
+        Ok(Some(match &token.kind {
+            Var => self.var_decl()?,
+            EOF => return Ok(None),
 
-            _ => return Ok(None),
+            _ => Statement::Expression(Box::new(self.expression()?)),
         }))
     }
 
-    fn parse_var_decl(&mut self) -> ParserResult<Statement> {
+    fn var_decl(&mut self) -> ParserResult<Statement> {
         let identifier = self
             .expect_token(&LexerTokenKind::Identifier)?
-            .as_identifier()?.clone();
+            .as_identifier()?
+            .clone();
 
         let value = if self.next_if_eq(&&LexerTokenKind::Equal).is_some() {
             Some(Box::from(self.expression()?))
@@ -142,13 +146,13 @@ impl<'a> Parser<'a> {
             let operator: LogicalOperator = LogicalOperator::Or;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Logical(Box::from((
                     lhs,
                     WithCursor::create_with(token_or.start, token_or.end, operator),
                     rhs,
-                )))
+                ))),
             );
         }
 
@@ -164,13 +168,13 @@ impl<'a> Parser<'a> {
             let operator: LogicalOperator = LogicalOperator::And;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Logical(Box::from((
                     lhs,
                     WithCursor::create_with(token_and.start, token_and.end, operator),
                     rhs,
-                )))
+                ))),
             );
         }
 
@@ -180,22 +184,21 @@ impl<'a> Parser<'a> {
     fn cmp_equality(&mut self) -> ParserResult<WithCursor<Expression>> {
         let mut lhs = self.cmp_lgt()?;
 
-        while let Some(token_eq) = self.next_if_eq_mul(&[
-            &LexerTokenKind::EqualEqual,
-            &LexerTokenKind::NotEqual,
-        ]) {
+        while let Some(token_eq) =
+            self.next_if_eq_mul(&[&LexerTokenKind::EqualEqual, &LexerTokenKind::NotEqual])
+        {
             let rhs = self.cmp_lgt()?;
 
             let operator: LogicalOperator = token_eq.kind.clone().try_into()?;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Logical(Box::from((
                     lhs,
                     WithCursor::create_with(token_eq.start, token_eq.end, operator),
                     rhs,
-                )))
+                ))),
             );
         }
 
@@ -216,13 +219,13 @@ impl<'a> Parser<'a> {
             let operator: LogicalOperator = token_cmp.kind.clone().try_into()?;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Logical(Box::from((
                     lhs,
                     WithCursor::create_with(token_cmp.start, token_cmp.end, operator),
                     rhs,
-                )))
+                ))),
             );
         }
 
@@ -232,22 +235,21 @@ impl<'a> Parser<'a> {
     fn arith_add_sub(&mut self) -> ParserResult<WithCursor<Expression>> {
         let mut lhs = self.arith_mul_div()?;
 
-        while let Some(token_arith) = self.next_if_eq_mul(&[
-            &LexerTokenKind::Plus,
-            &LexerTokenKind::Minus,
-        ]) {
+        while let Some(token_arith) =
+            self.next_if_eq_mul(&[&LexerTokenKind::Plus, &LexerTokenKind::Minus])
+        {
             let rhs = self.arith_mul_div()?;
 
             let operator: ArithmeticOperator = token_arith.kind.clone().try_into()?;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Arithmetic(Box::from((
                     lhs,
                     WithCursor::create_with(token_arith.start, token_arith.end, operator),
                     rhs,
-                )))
+                ))),
             );
         }
 
@@ -257,22 +259,21 @@ impl<'a> Parser<'a> {
     fn arith_mul_div(&mut self) -> ParserResult<WithCursor<Expression>> {
         let mut lhs = self.unary()?;
 
-        while let Some(token_arith) = self.next_if_eq_mul(&[
-            &LexerTokenKind::Multiply,
-            &LexerTokenKind::Divide,
-        ]) {
+        while let Some(token_arith) =
+            self.next_if_eq_mul(&[&LexerTokenKind::Multiply, &LexerTokenKind::Divide])
+        {
             let rhs = self.unary()?;
 
             let operator: ArithmeticOperator = token_arith.kind.clone().try_into()?;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Arithmetic(Box::from((
                     lhs,
                     WithCursor::create_with(token_arith.start, token_arith.end, operator),
                     rhs,
-                )))
+                ))),
             );
         }
 
@@ -288,12 +289,12 @@ impl<'a> Parser<'a> {
             let operator: UnaryOperator = token_unary.kind.clone().try_into()?;
 
             lhs = WithCursor::create_with(
-                lhs.start, 
-                rhs.end, 
+                lhs.start,
+                rhs.end,
                 Expression::Unary(Box::from((
                     WithCursor::create_with(token_unary.start, token_unary.end, operator),
                     lhs,
-                )))
+                ))),
             );
         }
 
@@ -308,14 +309,22 @@ impl<'a> Parser<'a> {
         let Some(token) = self.next() else {
             return Err(ParserErrorKind::UnexpectedEnd);
         };
-        
-        let expr = match token.kind {
-            LexerTokenKind::String => Expression::Literal(Box::from(Literal::String(Box::from(token.as_string()?.to_owned())))),
-            LexerTokenKind::Integer => Expression::Literal(Box::from(Literal::Integer(*token.as_integer()?))),
-            LexerTokenKind::Boolean => Expression::Literal(Box::from(Literal::Boolean(*token.as_boolean()?))),
-            LexerTokenKind::ShellCommand => Expression::ShellCommand(Box::from(token.as_shell_command()?.to_owned())),
 
-            _ => return Err(ParserErrorKind::UnexpectedEnd),
+        let expr = match token.kind {
+            LexerTokenKind::String => Expression::Literal(Box::from(Literal::String(Box::from(
+                token.as_string()?.to_owned(),
+            )))),
+            LexerTokenKind::Integer => {
+                Expression::Literal(Box::from(Literal::Integer(*token.as_integer()?)))
+            }
+            LexerTokenKind::Boolean => {
+                Expression::Literal(Box::from(Literal::Boolean(*token.as_boolean()?)))
+            }
+            LexerTokenKind::ShellCommand => {
+                Expression::ShellCommand(Box::from(token.as_shell_command()?.to_owned()))
+            }
+
+            _ => return Err(ParserErrorKind::UnexpectedToken(token.kind.clone())),
         };
 
         Ok(WithCursor::create_with(token.start, token.end, expr))
@@ -323,7 +332,7 @@ impl<'a> Parser<'a> {
 
     fn expect_token(&mut self, expected: &'a LexerTokenKind) -> ParserResult<&LexerToken> {
         self.expect(&expected).map_err(|found| {
-            ParserErrorKind::UnexpectedToken(expected.clone(), found.map(|t| t.kind.clone()))
+            ParserErrorKind::ExpectedToken(expected.clone(), found.map(|t| t.kind.clone()))
         })
     }
 }

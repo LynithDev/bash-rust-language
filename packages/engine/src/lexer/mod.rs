@@ -82,23 +82,13 @@ impl<'a> Lexer<'a> {
             if let Some(char) = self.next() {
                 match self.scan_char(&char) {
                     Ok(Some((token_type, value))) => self.add_token(token_type, value, start),
-                    Err(err) => {
-                        self.errors.push(EngineErrorKind::LexerError(LexerError {
-                            #[cfg(feature = "cli")]
-                            source_file: self.get_source_sliced(start, self.cursor),
-                            start,
-                            end: self.cursor,
-                            kind: err,
-                        }));
-                    }
+                    Err(err) => self.add_error(start, err),
                     _ => {}
                 }
             }
         }
 
-        let start = self.cursor;
-        self.cursor.next_line();
-        self.add_token(LexerTokenKind::EOL, None, start);
+        self.add_token(LexerTokenKind::EOF, None, self.cursor);
 
         &self.tokens
     }
@@ -258,6 +248,20 @@ impl<'a> Lexer<'a> {
         });
     }
 
+    fn add_error(
+        &mut self,
+        start: Cursor,
+        err: LexerErrorKind
+    ) {
+        self.errors.push(EngineErrorKind::LexerError(LexerError {
+            #[cfg(feature = "cli")]
+            source_file: self.get_source_sliced(start, self.cursor),
+            start,
+            end: self.cursor,
+            kind: err,
+        }))
+    }
+
     /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
     fn consume_single_line_comment(&mut self) -> LexerResult<()> {
         self.eat_until(&['\n'], false);
@@ -280,7 +284,15 @@ impl<'a> Lexer<'a> {
     /// Attempts to return a [`TokenType::String`]
     fn consume_string(&mut self) -> LexerResult<(LexerTokenKind, Option<Box<LexerLiteral>>)> {
         let string = self.eat_until(&['"', '\n'], true).unwrap_or_default();
-        self.expect_char(&'"')?;
+        
+        if let Err(err) = self.expect_char(&'"') {
+            if let LexerErrorKind::ExpectedCharacter { found: Some(found), .. } = &err {
+                self.cursor_next(found);
+            }
+            
+            return Err(err);
+        }
+    
         Ok((
             LexerTokenKind::String,
             Some(Box::from(LexerLiteral::String(Box::from(string)))),
@@ -366,7 +378,7 @@ impl<'a> Lexer<'a> {
             }
 
             _ => {
-                return Err(LexerErrorKind::UnexpectedCharacter {
+                return Err(LexerErrorKind::ExpectedCharacter {
                     expected: "0..9".to_string(),
                     found: Some(char),
                 })
@@ -404,7 +416,7 @@ impl<'a> Lexer<'a> {
                     LexerErrorKind::IntegerOverflow(collector)
                 }
 
-                IntErrorKind::InvalidDigit => LexerErrorKind::UnexpectedCharacter {
+                IntErrorKind::InvalidDigit => LexerErrorKind::ExpectedCharacter {
                     expected: "0..9".to_string(),
                     found: None,
                 },
@@ -468,7 +480,7 @@ impl<'a> Lexer<'a> {
 
     fn expect_char(&mut self, expected: &char) -> LexerResult<char> {
         self.expect(expected)
-            .map_err(|found| LexerErrorKind::UnexpectedCharacter {
+            .map_err(|found| LexerErrorKind::ExpectedCharacter {
                 expected: expected.to_string(),
                 found,
             })
@@ -491,7 +503,11 @@ impl<'a> ComponentIter<'a, char, char, Chars<'a>> for Lexer<'a> {
         &mut self.chars
     }
 
-    fn cursor_next(&mut self, item: &char) {
-        self.cursor.next(item);
+    fn cursor_next(&mut self, char: &char) {
+        if char == &'\n' {
+            self.cursor.next_line();
+        } else {
+            self.cursor.next_col();
+        }
     }
 }

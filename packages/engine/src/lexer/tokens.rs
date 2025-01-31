@@ -106,6 +106,7 @@ pub enum LexerTokenKind {
     RangeInclusive,
     /// `\n`
     EOL,
+    EOF,
 
     Identifier,
     String,
