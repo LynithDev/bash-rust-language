@@ -1,3 +1,11 @@
-fn test(param: Int = 5, lol: Str) {
-    var test = 5
+var test
+
+if a {
+    test = 5
+} else if true {
+    test = 10
+} else {
+    test = 15
 }
+
+var cool = test - 10

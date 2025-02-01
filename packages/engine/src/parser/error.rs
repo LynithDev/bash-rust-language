@@ -9,7 +9,11 @@ pub enum ParserErrorKind {
     #[error("couldn't convert lexer token {0} to ast node")]
     ConvertError(LexerTokenKind),
     #[error("expected token '{0:?}' but found {1:?}")]
-    ExpectedToken(LexerTokenKind, Option<LexerTokenKind>),
+    ExpectedToken(Vec<LexerTokenKind>, Option<LexerTokenKind>),
+    #[error("expected expression")]
+    ExpectedExpression,
+    #[error("expected statement")]
+    ExpectedStatement,
     #[error("unexpected token '{0:?}'")]
     UnexpectedToken(LexerTokenKind),
     #[error("unexpected end of input")]

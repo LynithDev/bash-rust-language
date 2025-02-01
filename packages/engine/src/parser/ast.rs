@@ -16,9 +16,11 @@ pub enum Expression {
     ShellCommand(Box<ShellCommand>),
     Identifier(Box<Identifier>),
     FunctionCall(Box<(Identifier, Vec<Expression>)>),
-    If(Box<(Expression, WithCursor<Block>, Option<Statement>)>),
+    If(Box<(WithCursor<Expression>, WithCursor<Block>, Option<Else>)>),
     Match(Box<(Expression, Vec<(Expression, Expression)>)>),
 }
+
+pub type Else = WithCursor<Block>;
 
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
@@ -26,6 +28,7 @@ pub enum Statement {
     While(Box<(WithCursor<Expression>, WithCursor<Block>)>),
     For(Box<(Variable, WithCursor<Expression>, WithCursor<Block>)>),
     Return(Box<Option<WithCursor<Expression>>>),
+    If(Box<WithCursor<Expression>>),
     Expression(Box<WithCursor<Expression>>),
     Continue,
     Break,
@@ -124,7 +127,7 @@ impl TryFrom<LexerTokenKind> for LogicalOperator {
     
     fn try_from(value: LexerTokenKind) -> Result<Self, Self::Error> {
         Ok(match value {
-            LexerTokenKind::Equal => Self::Equal,
+            LexerTokenKind::EqualEqual => Self::Equal,
             LexerTokenKind::NotEqual => Self::NotEqual,
             LexerTokenKind::LesserThan => Self::LesserThan,
             LexerTokenKind::LesserEqualThan => Self::LesserEqualThan,
@@ -156,6 +159,7 @@ impl TryFrom<LexerTokenKind> for AssignmentOperator {
             LexerTokenKind::MinusEqual => Self::MinusAssign,
             LexerTokenKind::MultiplyEqual => Self::MultiplyAssign,
             LexerTokenKind::DivideEqual => Self::DivideAssign,
+            LexerTokenKind::Equal => Self::Assign,
             _ => return Err(ParserErrorKind::ConvertError(value))
         })
     }
