@@ -1,2 +1,1 @@
-var test = if true: 5
-           else: 10
+var test = ((5 + 5) + 5)

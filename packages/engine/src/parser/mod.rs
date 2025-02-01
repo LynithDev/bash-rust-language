@@ -472,6 +472,11 @@ impl<'a> Parser<'a> {
                 Expression::ShellCommand(Box::from(token.as_shell_command()?.to_owned()))
             }
 
+            LexerTokenKind::LParen => {
+                self.next();
+                return self.group()
+            },
+
             LexerTokenKind::If => {
                 self.next();
                 return self.if_expr()
@@ -490,6 +495,16 @@ impl<'a> Parser<'a> {
         self.next();
 
         Ok(Some(WithCursor::create_with(token.start, token.end, expr)))
+    }
+
+    fn group(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+        let_expr!(mut expr = self.expression()?);
+
+        self.expect_token(&LexerTokenKind::RParen)?;
+
+        expr.value = Expression::Group(Box::from(expr.value));
+
+        Ok(Some(expr))
     }
 
     fn if_expr(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
