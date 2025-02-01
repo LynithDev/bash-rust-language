@@ -16,17 +16,15 @@ pub enum Expression {
     ShellCommand(Box<ShellCommand>),
     Identifier(Box<Identifier>),
     FunctionCall(Box<(Identifier, Vec<Expression>)>),
-    If(Box<(Expression, Block, Option<Statement>)>),
+    If(Box<(Expression, WithCursor<Block>, Option<Statement>)>),
     Match(Box<(Expression, Vec<(Expression, Expression)>)>),
-    Empty,
 }
-
 
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
-    While(Box<(WithCursor<Expression>, Block)>),
-    For(Box<(Variable, WithCursor<Expression>, Block)>),
+    While(Box<(WithCursor<Expression>, WithCursor<Block>)>),
+    For(Box<(Variable, WithCursor<Expression>, WithCursor<Block>)>),
     Return(Box<Option<WithCursor<Expression>>>),
     Expression(Box<WithCursor<Expression>>),
     Continue,
@@ -168,12 +166,14 @@ impl TryFrom<LexerTokenKind> for AssignmentOperator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
     pub name: String,
-    pub parameters: Vec<Variable>,
-    pub body: Block,
+    pub parameters: Option<Vec<Variable>>,
+    pub strict_type: Option<String>,
+    pub body: WithCursor<Block>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Variable {
-    pub name: Box<String>,
-    pub value: Option<Box<WithCursor<Expression>>>,
+    pub name: String,
+    pub strict_type: Option<String>,
+    pub value: Option<WithCursor<Expression>>,
 }

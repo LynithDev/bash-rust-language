@@ -87,9 +87,9 @@ pub enum LexerTokenKind {
 
     // punctuation
     /// `(`
-    LParam,
+    LParen,
     /// `)`
-    RParam,
+    RParen,
     /// `{`
     LBracket,
     /// `}`

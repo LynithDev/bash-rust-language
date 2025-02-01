@@ -173,8 +173,8 @@ impl<'a> Lexer<'a> {
                 _ if double!('&', '&') => And,
                 _ if double!('|', '|') => Or,
 
-                '(' => LParam,
-                ')' => RParam,
+                '(' => LParen,
+                ')' => RParen,
                 '{' => LBracket,
                 '}' => RBracket,
                 ',' => Comma,
