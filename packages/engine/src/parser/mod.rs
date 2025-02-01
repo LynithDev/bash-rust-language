@@ -252,7 +252,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_inline_block(&mut self) -> ParserResult<WithCursor<Block>> {
-        let Some(next) = self.next() else {
+        let Some(next) = self.peek().cloned() else {
             return Err(ParserErrorKind::ExpectedStatement);
         };
 

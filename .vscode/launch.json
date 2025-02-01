@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug script.tsh",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=lang_cli",
+                    "--package=lang_cli"
+                ],
+                "filter": {
+                    "name": "lang_cli",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "script.tsh"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "name": "JavaScript Debug Terminal",
+            "request": "launch",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
