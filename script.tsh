@@ -1,3 +1,2 @@
-if true: test = 5
-else if false: test = 10
-else: test = 15
+var test = if true: 5
+           else: 10
