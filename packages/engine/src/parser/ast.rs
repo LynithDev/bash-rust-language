@@ -15,7 +15,7 @@ pub enum Expression {
     Range(Box<(WithCursor<Literal>, WithCursor<Literal>, bool)>),
     ShellCommand(Box<ShellCommand>),
     Identifier(Box<Identifier>),
-    FunctionCall(Box<(Identifier, Vec<Expression>)>),
+    FunctionCall(Box<(Identifier, Vec<WithCursor<Expression>>)>),
     If(Box<(WithCursor<Expression>, WithCursor<Block>, Option<Else>)>),
     Match(Box<(Expression, Vec<(Expression, Expression)>)>),
 }

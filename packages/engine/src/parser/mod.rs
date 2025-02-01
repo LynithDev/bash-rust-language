@@ -445,7 +445,42 @@ impl<'a> Parser<'a> {
     }
 
     fn func_invoke(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
-        self.literals() // TODO
+        let_expr!(mut expr = self.literals()?);
+
+        if let Expression::Identifier(identifier) = &expr.value {
+            if self.next_if_eq(&&LexerTokenKind::LParen).is_some() {
+                let mut args = vec![];
+                let mut end = self.cursor;
+
+                while let Some(token) = self.peek() {
+                    dbg!(token);
+
+                    if self.next_if_eq(&&LexerTokenKind::RParen).is_some() {
+                        end = self.cursor;
+                        break;
+                    }
+
+                    if self.next_if_eq(&&LexerTokenKind::Comma).is_some() {
+                        continue;
+                    }
+
+                    let_expr!(arg = self.expression()?);
+
+                    args.push(arg);
+                }
+
+                expr = WithCursor::create_with(
+                    expr.start,
+                    end,
+                    Expression::FunctionCall(Box::from((
+                        identifier.to_string(),
+                        args
+                    )))
+                )
+            }
+        }
+
+        Ok(Some(expr))
     }
 
     fn literals(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
