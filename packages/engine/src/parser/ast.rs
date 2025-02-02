@@ -12,7 +12,7 @@ pub enum Expression {
     Arithmetic(Box<(WithCursor<Expression>, WithCursor<ArithmeticOperator>, WithCursor<Expression>)>),
     Logical(Box<(WithCursor<Expression>, WithCursor<LogicalOperator>, WithCursor<Expression>)>),
     Assignment(Box<(WithCursor<Expression>, WithCursor<AssignmentOperator>, WithCursor<Expression>)>),
-    Range(Box<(WithCursor<Literal>, WithCursor<Literal>, bool)>),
+    Range(Box<(WithCursor<Expression>, WithCursor<Expression>, bool)>),
     ShellCommand(Box<ShellCommand>),
     Identifier(Box<Identifier>),
     FunctionCall(Box<(Identifier, Vec<WithCursor<Expression>>)>),

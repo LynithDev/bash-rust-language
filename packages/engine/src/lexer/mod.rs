@@ -180,7 +180,7 @@ impl<'a> Lexer<'a> {
                 ',' => Comma,
                 ':' => Colon,
                 _ if double!('.', '.') => {
-                    if self.next() == Some('=') {
+                    if self.next_if_eq(&'=').is_some() {
                         RangeInclusive
                     } else {
                         Range
