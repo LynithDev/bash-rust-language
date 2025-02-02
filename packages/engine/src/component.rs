@@ -82,14 +82,31 @@ pub trait ComponentIter<'a, C, T, I> where
 
     /// Expects a item to be there
     fn expect(&mut self, expected: &C) -> std::result::Result<T, Option<T>> {
-        let Some(item) = self.next_if_eq(expected) else {
+        let Some(item) = self.peek() else {
             return Err(None);
         };
 
-        if &item == expected {
-            Ok(item)
+        if expected == item {
+            let cloned = item.clone();
+            self.next();
+            Ok(cloned)
         } else {
-            Err(Some(item))
+            Err(Some(item.clone()))
+        }
+    }
+
+    /// Expects one of an item to be there
+    fn expect_any(&mut self, expected: &[C]) -> std::result::Result<T, Option<T>> {
+        let Some(item) = self.peek() else {
+            return Err(None);
+        };
+
+        if expected.iter().any(|t| t == item) {
+            let cloned = item.clone();
+            self.next();
+            Ok(cloned)
+        } else {
+            Err(Some(item.clone()))
         }
     }
 

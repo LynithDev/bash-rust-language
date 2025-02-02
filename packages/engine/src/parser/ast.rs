@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug, rc::Rc};
 
 use crate::{cursor::WithCursor, lexer::tokens::{LexerToken, LexerTokenKind, ShellCommand}};
 
@@ -17,10 +17,12 @@ pub enum Expression {
     Identifier(Box<Identifier>),
     FunctionCall(Box<(Identifier, Vec<WithCursor<Expression>>)>),
     If(Box<(WithCursor<Expression>, WithCursor<Block>, Option<Else>)>),
-    Match(Box<(Expression, Vec<(Expression, Expression)>)>),
+    Match(Box<(WithCursor<Expression>, MatchCase)>),
+    Block(Box<Block>),
 }
 
 pub type Else = WithCursor<Block>;
+pub type MatchCase = HashMap<WithCursor<Literal>, Rc<WithCursor<Expression>>>;
 
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
@@ -29,6 +31,7 @@ pub enum Statement {
     For(Box<(Variable, WithCursor<Expression>, WithCursor<Block>)>),
     Return(Box<Option<WithCursor<Expression>>>),
     If(Box<WithCursor<Expression>>),
+    Match(Box<WithCursor<Expression>>),
     Expression(Box<WithCursor<Expression>>),
     Continue,
     Break,
@@ -44,7 +47,7 @@ pub type ProgramTree = Block;
 pub type Identifier = String;
 pub type Block = Vec<Statement>;
 
-#[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
+#[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Literal {
     Integer(isize),
     Boolean(bool),

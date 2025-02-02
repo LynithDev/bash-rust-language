@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, hash::Hash};
 
 #[derive(Clone, Copy, Eq)]
 pub struct Cursor(u16, u16, u32);
@@ -12,6 +12,13 @@ impl Debug for Cursor {
 impl PartialEq for Cursor {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0 && self.1 == other.1
+    }
+}
+
+impl Hash for Cursor {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+        self.1.hash(state);
     }
 }
 
@@ -61,7 +68,7 @@ impl Cursor {
     } 
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WithCursor<T> {
     pub value: T,
     pub start: Cursor,

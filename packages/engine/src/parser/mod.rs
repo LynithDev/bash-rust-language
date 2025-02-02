@@ -1,8 +1,8 @@
-use std::{iter::Peekable, slice::Iter};
+use std::{iter::Peekable, rc::Rc, slice::Iter};
 
 use ast::{
     ArithmeticOperator, AssignmentOperator, Block, Expression, Function, Identifier, Literal,
-    LogicalOperator, ProgramTree, Statement, UnaryOperator, Variable,
+    LogicalOperator, MatchCase, ProgramTree, Statement, UnaryOperator, Variable,
 };
 use error::ParserResult;
 
@@ -63,7 +63,7 @@ impl<'a> Parser<'a> {
         parser
     }
 
-    // MARK: Parse
+    // MARK: Parser Main
     pub fn parse(&mut self) -> ProgramTree {
         let mut statements = ProgramTree::new();
 
@@ -71,10 +71,11 @@ impl<'a> Parser<'a> {
             match self.parse_statement(token) {
                 Ok(Some(statement)) => statements.push(statement),
                 Err(err) => {
+                    debug!("adding error {err:?}");
                     let token = self.token.as_ref().unwrap_or(token);
                     self.add_error(token.start, token.end, err)
                 }
-                _ => warn!("empty")
+                _ => debug!("empty statement"),
             }
 
             self.next();
@@ -110,7 +111,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    // MARK: Var Stmt
+    // MARK: Variable
     fn var_decl(&mut self) -> ParserResult<Statement> {
         self.expect_token(&LexerTokenKind::Var)?;
         let value = self.parse_var()?;
@@ -119,7 +120,6 @@ impl<'a> Parser<'a> {
         Ok(Statement::Variable(Box::from(value)))
     }
 
-    // MARK: Var Parsing
     fn parse_var(&mut self) -> ParserResult<Variable> {
         let identifier = self
             .expect_token(&LexerTokenKind::Identifier)?
@@ -156,7 +156,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    // MARK: Func Decl
+    // MARK: Function
     fn func_decl(&mut self) -> ParserResult<Statement> {
         self.expect_token(&LexerTokenKind::Function)?;
 
@@ -216,26 +216,8 @@ impl<'a> Parser<'a> {
             return Err(ParserErrorKind::ExpectedStatement);
         };
 
+        self.next();
         Ok(WithCursor::create_with(start, self.cursor, vec![stmt]))
-    }
-
-    fn parse_block(&mut self) -> ParserResult<WithCursor<Block>> {
-        let mut block = Block::new();
-        let start = self.cursor;
-
-        while let Some(token) = self.peek().cloned() {
-            if token.kind == LexerTokenKind::RBracket {
-                break;
-            }
-
-            if let Some(statement) = self.parse_statement(token)? {
-                block.push(statement);
-            }
-
-            self.next();
-        }
-
-        Ok(WithCursor::create_with(start, self.cursor, block))
     }
 
     fn expression(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
@@ -426,7 +408,6 @@ impl<'a> Parser<'a> {
         Ok(Some(lhs))
     }
 
-
     // MARK: Unary
     fn unary(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
         let_expr!(mut lhs = self.func_invoke()?);
@@ -451,7 +432,7 @@ impl<'a> Parser<'a> {
 
     // MARK: Func Invoke
     fn func_invoke(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
-        let_expr!(mut expr = self.literals()?);
+        let_expr!(mut expr = self.primary()?);
 
         if let Expression::Identifier(identifier) = &expr.value {
             if self.next_if_eq(&&LexerTokenKind::LParen).is_some() {
@@ -478,10 +459,7 @@ impl<'a> Parser<'a> {
                 expr = WithCursor::create_with(
                     expr.start,
                     end,
-                    Expression::FunctionCall(Box::from((
-                        identifier.to_string(),
-                        args
-                    )))
+                    Expression::FunctionCall(Box::from((identifier.to_string(), args))),
                 )
             }
         }
@@ -489,8 +467,9 @@ impl<'a> Parser<'a> {
         Ok(Some(expr))
     }
 
-    // MARK: Literals
-    fn literals(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    // MARK: Primary
+    /// Highest precedence
+    fn primary(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
         let_expr!(token = self.peek());
 
         let expr = match token.kind {
@@ -516,21 +495,31 @@ impl<'a> Parser<'a> {
 
             LexerTokenKind::LParen => {
                 self.next();
-                return self.group()
-            },
+                return self.group();
+            }
+
+            LexerTokenKind::LBracket => {
+                self.next();
+                return self.block_expr();
+            }
 
             LexerTokenKind::If => {
                 self.next();
-                return self.if_expr()
-            },
+                return self.if_expr();
+            }
+
+            LexerTokenKind::Match => {
+                self.next();
+                return self.match_expr();
+            }
 
             LexerTokenKind::EOL | LexerTokenKind::EOF => return Ok(None),
 
             _ => {
                 let token = token.to_owned();
                 self.cursor_next(&token);
-                return Err(ParserErrorKind::UnexpectedToken(token.kind.clone()))
-            },
+                return Err(ParserErrorKind::UnexpectedToken(token.kind.clone()));
+            }
         };
 
         let token = token.to_owned();
@@ -550,12 +539,12 @@ impl<'a> Parser<'a> {
         Ok(Some(expr))
     }
 
-    // MARK: If Expr
+    // MARK: If
     fn if_expr(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
         let_expr!(condition = self.expression()?);
 
         let start = self.cursor;
-        
+
         
         let truthy_block = if self.next_if_eq(&&LexerTokenKind::LBracket).is_some() {
             self.parse_block()?
@@ -565,7 +554,6 @@ impl<'a> Parser<'a> {
             return Err(ParserErrorKind::ExpectedExpression);
         };
 
-        self.next();
 
         let else_condition = if self.next_if_eq(&&LexerTokenKind::Else).is_some() {
             let start = self.cursor;
@@ -574,22 +562,22 @@ impl<'a> Parser<'a> {
                 Some(LexerTokenKind::LBracket) => {
                     self.next();
                     self.parse_block()?
-                },
+                }
                 Some(LexerTokenKind::Colon) => {
                     self.next();
                     self.parse_inline_block()?
-                },
+                }
                 _ => {
                     let stmt = self.parse_if()?;
                     WithCursor::create_with(start, self.cursor, vec![stmt])
-                },
+                }
             })
         } else {
             None
         };
-        
+
         let if_expr = Expression::If(Box::from((condition, truthy_block, else_condition)));
-        
+
         Ok(Some(WithCursor::create_with(start, self.cursor, if_expr)))
     }
 
@@ -603,20 +591,115 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // MARK: Match
+    fn match_expr(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+        let start = self.cursor;
+
+        let_expr!(pattern = self.expression()?);
+
+        self.expect_token(&LexerTokenKind::LBracket)?;
+        self.expect_terminator()?;
+
+        let mut hash_map = MatchCase::new();
+        
+        while let Some(token) = self.peek().cloned() {
+            if token.kind == LexerTokenKind::RBracket {
+                // self.next();
+                break;
+            }
+
+            if token.value.is_some() {
+                fn to_case(token: &LexerToken) -> ParserResult<WithCursor<Literal>> {
+                    Ok(WithCursor::create_with(
+                        token.start,
+                        token.end,
+                        token.to_owned().try_into()?,
+                    ))
+                }
+
+                let mut cases = vec![];
+
+                // First Case
+                cases.push(to_case(token)?);
+
+                self.next();
+
+                while self.next_if_eq(&&LexerTokenKind::Or).is_some() {
+                    if let Some(token) = self.next() {
+                        cases.push(to_case(token)?)
+                    } else {
+                        break;
+                    }
+                }
+
+                self.expect_token(&LexerTokenKind::Arrow)?;
+
+                let_expr!(value = self.expression()?);
+
+                let rc = Rc::new(value);
+
+                for key in cases {
+                    hash_map.insert(key, rc.clone());
+                }
+            }
+
+            self.next();
+        }
+
+        Ok(Some(WithCursor::create_with(
+            start,
+            self.cursor,
+            Expression::Match(Box::from((pattern, hash_map))),
+        )))
+    }
+
+    fn block_expr(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+        let block = self.parse_block()?;
+
+        let block = WithCursor::create_with(
+            block.start,
+            block.end,
+            Expression::Block(Box::from(block.value)),
+        );
+
+        Ok(Some(block))
+    }
+
+    fn parse_block(&mut self) -> ParserResult<WithCursor<Block>> {
+        self.expect_terminator()?;
+
+        let mut block = Block::new();
+        let start = self.cursor;
+
+        while let Some(token) = self.peek().cloned() {
+            if token.kind == LexerTokenKind::RBracket {
+                self.next();
+                break;
+            }
+
+            if let Some(statement) = self.parse_statement(token)? {
+                block.push(statement);
+            }
+        
+            self.next();
+        }
+
+        Ok(WithCursor::create_with(start, self.cursor, block))
+    }
+
     fn expect_token(&mut self, expected: &'a LexerTokenKind) -> ParserResult<&LexerToken> {
         self.expect(&expected).map_err(|found| {
             ParserErrorKind::ExpectedToken(vec![expected.clone()], found.map(|t| t.kind.clone()))
         })
     }
 
-    fn expect_terminator(&mut self) -> ParserResult<()> {
-        match self.peek().map(|t| t.kind.clone()) {
-            Some(LexerTokenKind::EOL) | Some(LexerTokenKind::EOF) | None => {
-                Ok(())
-            },
-            found => {
-                Err(ParserErrorKind::ExpectedToken(vec![LexerTokenKind::EOL, LexerTokenKind::EOF], found))
-            }
+    fn expect_terminator(&mut self) -> ParserResult<&LexerToken> {
+        match self.expect_any(&[&LexerTokenKind::EOL, &LexerTokenKind::EOF]) {
+            Ok(found) => Ok(found),
+            Err(found) => Err(ParserErrorKind::ExpectedToken(
+                vec![LexerTokenKind::EOL, LexerTokenKind::EOF],
+                found.map(|t| t.kind.clone()),
+            )),
         }
     }
 }

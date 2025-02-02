@@ -8,7 +8,7 @@ pub enum ParserErrorKind {
     EngineError(#[from] crate::error::EngineErrorKind),
     #[error("couldn't convert lexer token {0} to ast node")]
     ConvertError(LexerTokenKind),
-    #[error("expected token '{0:?}' but found {1:?}")]
+    #[error("expected token '{0:?}' but found '{1:?}'")]
     ExpectedToken(Vec<LexerTokenKind>, Option<LexerTokenKind>),
     #[error("expected expression")]
     ExpectedExpression,

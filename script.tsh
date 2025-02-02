@@ -1,1 +1,16 @@
-test(5, 10, test(5, 51))
+fn test() {
+    if true {
+        5
+    } else {
+        if true {
+            10
+        } else {
+            match "pattern" {
+                "not" || "test" => {
+                    10
+                }
+                "cool" => 5
+            }
+        }
+    }
+}
