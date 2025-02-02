@@ -8,10 +8,9 @@ use error::ParserResult;
 
 use crate::{
     component::{ComponentErrors, ComponentIter},
-    cursor::WithCursor,
+    cursor::{Cursor, WithCursor},
     error::{EngineErrorKind, ErrorList},
     lexer::tokens::{LexerToken, LexerTokenKind, LexerTokenList},
-    Cursor,
 };
 
 pub use error::{ParserError, ParserErrorKind};
@@ -25,6 +24,7 @@ pub struct Parser<'a> {
     token: Option<LexerToken>,
     cursor: Cursor,
     errors: ErrorList,
+    tree: ProgramTree,
 
     #[cfg(feature = "cli")]
     source: crate::error::SourceFile,
@@ -54,6 +54,7 @@ impl<'a> Parser<'a> {
             token: None,
             cursor: Cursor::create(),
             errors: ErrorList::new(),
+            tree: ProgramTree::new(),
 
             #[cfg(feature = "cli")]
             source,
@@ -64,12 +65,10 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Parser Main
-    pub fn parse(&mut self) -> ProgramTree {
-        let mut statements = ProgramTree::new();
-
+    pub fn parse(&mut self) -> &ProgramTree {
         while let Some(token) = self.peek().cloned() {
             match self.parse_statement(token) {
-                Ok(Some(statement)) => statements.push(statement),
+                Ok(Some(statement)) => self.tree.push(statement),
                 Err(err) => {
                     debug!("adding error {err:?}");
                     let token = self.token.as_ref().unwrap_or(token);
@@ -81,7 +80,7 @@ impl<'a> Parser<'a> {
             self.next();
         }
 
-        statements
+        &self.tree
     }
 
     fn add_error(&mut self, start: Cursor, end: Cursor, kind: ParserErrorKind) {
@@ -444,22 +443,23 @@ impl<'a> Parser<'a> {
 
     // MARK: Unary
     fn expr_unary(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
-        let_expr!(mut lhs = self.expr_func_invoke()?);
-
-        while let Some(token_unary) = self.next_if_eq(&&LexerTokenKind::Not) {
+        let start = self.cursor;
+        if let Some(token_unary) = self.next_if_eq(&&LexerTokenKind::Not) {
             let_expr!(rhs = self.expr_unary()?);
-
+            
             let operator: UnaryOperator = token_unary.kind.clone().try_into()?;
-
-            lhs = WithCursor::create_with(
-                lhs.start,
+            
+            return Ok(Some(WithCursor::create_with(
+                start,
                 rhs.end,
                 Expression::Unary(Box::from((
                     WithCursor::create_with(token_unary.start, token_unary.end, operator),
-                    lhs,
+                    rhs,
                 ))),
-            );
+            )));
         }
+
+        let_expr!(lhs = self.expr_func_invoke()?);
 
         Ok(Some(lhs))
     }
@@ -762,10 +762,13 @@ impl<'a> Parser<'a> {
         match self.expect_any(&[&LexerTokenKind::EOL, &LexerTokenKind::EOF]) {
             Ok(found) => Ok(Some(found)),
             Err(None) => Ok(None),
-            Err(Some(found)) => Err(ParserErrorKind::ExpectedToken(
-                vec![LexerTokenKind::EOL, LexerTokenKind::EOF],
-                Some(found.kind.clone()),
-            )),
+            Err(Some(found)) => {
+                self.next();
+                Err(ParserErrorKind::ExpectedToken(
+                    vec![LexerTokenKind::EOL, LexerTokenKind::EOF],
+                    Some(found.kind.clone()),
+                ))
+            },
         }
     }
 }

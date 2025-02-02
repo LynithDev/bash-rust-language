@@ -1,5 +1,2 @@
-for i in 0..5 {
-    while true {
-        return true
-    }
-}
+var test = 10
+$echo #{test}

@@ -54,11 +54,11 @@ impl CodeError<ParserErrorKind> for ParserError {
         &self.source_file
     }
 
-    fn start(&self) -> &crate::Cursor {
+    fn start(&self) -> &crate::cursor::Cursor {
         &self.start
     }
 
-    fn end(&self) -> &crate::Cursor {
+    fn end(&self) -> &crate::cursor::Cursor {
         &self.end
     }
 }

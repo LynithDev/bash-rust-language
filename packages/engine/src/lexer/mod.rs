@@ -7,7 +7,7 @@ use crate::{
     component::{ComponentErrors, ComponentIter},
     constants::{MAX_I32_LEN, MAX_I64_LEN},
     error::{EngineErrorKind, ErrorList},
-    Cursor,
+    cursor::Cursor,
 };
 
 pub use error::{LexerError, LexerErrorKind};

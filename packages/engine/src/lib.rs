@@ -13,12 +13,11 @@ use lexer::Lexer;
 
 pub mod component;
 pub mod constants;
-mod cursor;
+pub mod cursor;
 pub mod error;
 pub mod lexer;
 pub mod parser;
 
-pub use cursor::Cursor;
 use parser::Parser;
 
 #[derive(Default)]

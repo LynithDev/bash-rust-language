@@ -15,7 +15,7 @@ macro_rules! token_list_comparison {
 
             pretty_assertions::assert_eq!(&expected, token_list);
 
-            use lang_engine::{Cursor, component::ComponentErrors};
+            use lang_engine::{cursor::Cursor, component::ComponentErrors};
             if lexer.has_errors() {
                 println!("{:#?}", lexer.fetch_errors());
             }

@@ -19,7 +19,7 @@ pub trait ComponentErrors {
     fn source(&self) -> &crate::error::SourceFile;
 
     #[cfg(feature = "cli")]
-    fn get_source_sliced(&self, start: crate::Cursor, end: crate::Cursor) -> crate::error::SourceFile {
+    fn get_source_sliced(&self, start: crate::cursor::Cursor, end: crate::cursor::Cursor) -> crate::error::SourceFile {
         let source_file = self.source();
 
         let start_index = start.index() as usize;

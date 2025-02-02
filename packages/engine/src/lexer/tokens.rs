@@ -4,7 +4,7 @@ use lang_macro::EnumVariantsTrait;
 
 use crate::{
     error::{EngineErrorKind, EngineResult},
-    Cursor,
+    cursor::Cursor,
 };
 
 #[repr(u8)]

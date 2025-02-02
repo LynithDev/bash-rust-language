@@ -28,8 +28,8 @@ pub trait CodeError<T>
 where T: lang_macro::EnumVariantsTrait + ToString {
     fn kind(&self) -> &T;
     fn source_file(&self) -> &SourceFile;
-    fn start(&self) -> &crate::Cursor;
-    fn end(&self) -> &crate::Cursor;
+    fn start(&self) -> &crate::cursor::Cursor;
+    fn end(&self) -> &crate::cursor::Cursor;
 
     fn format_error(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, 
