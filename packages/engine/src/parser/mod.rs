@@ -105,6 +105,9 @@ impl<'a> Parser<'a> {
             Match => self.stmt_match()?,
             For => self.stmt_for()?,
             While => self.stmt_while()?,
+            Return => self.stmt_return()?,
+            Break => Some(Statement::Break),
+            Continue => Some(Statement::Continue),
             EOF | EOL => return Ok(None),
 
             _ => {
@@ -240,6 +243,15 @@ impl<'a> Parser<'a> {
         let block = self.stmt_block()?;
 
         Ok(Some(Statement::While(Box::from((condition, block)))))
+    }
+
+    // MARK: Return
+    fn stmt_return(&mut self) -> ParserResult<Option<Statement>> {
+        self.expect_token(&LexerTokenKind::Return)?;
+
+        let value = self.expression()?;
+
+        Ok(Some(Statement::Return(Box::from(value))))
     }
 
     fn expression(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
