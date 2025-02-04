@@ -11,7 +11,7 @@ fn main() {
 
     debug!("initialized logger");
 
-    let mut engine = Engine::default();
+    let mut engine = Engine::create();
 
 
     let args: Vec<String> = std::env::args().collect();

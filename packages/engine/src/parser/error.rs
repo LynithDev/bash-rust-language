@@ -30,11 +30,9 @@ pub struct ParserError {
     pub end: Cursor,
 
     #[cfg(feature = "cli")]
-    pub source_file: SourceFile,
+    pub source_file: crate::error::SourceFile,
 }
 
-#[cfg(feature = "cli")]
-pub(super) type SourceFile = Box<(Option<std::path::PathBuf>, String)>;
 pub(super) type ParserResult<T> = std::result::Result<T, ParserErrorKind>;
 
 #[cfg(feature = "cli")]

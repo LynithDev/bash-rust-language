@@ -4,10 +4,7 @@ use error::LexerResult;
 use tokens::{LexerLiteral, LexerToken, LexerTokenKind, LexerTokenList};
 
 use crate::{
-    component::{ComponentErrors, ComponentIter},
-    constants::{MAX_I32_LEN, MAX_I64_LEN},
-    error::{EngineErrorKind, ErrorList},
-    cursor::Cursor,
+    component::{ComponentErrors, ComponentIter}, constants::{MAX_I32_LEN, MAX_I64_LEN}, cursor::Cursor, error::{EngineErrorKind, ErrorList}, parser::expr::ShellCommand
 };
 
 pub use error::{LexerError, LexerErrorKind};
@@ -326,7 +323,7 @@ impl<'a> Lexer<'a> {
 
         Ok((
             LexerTokenKind::ShellCommand,
-            Some(Box::from(LexerLiteral::ShellCommand(Box::from((cmd_name, cmd_args))))),
+            Some(Box::from(LexerLiteral::ShellCommand(Box::from(ShellCommand(cmd_name, cmd_args))))),
         ))
     }
 

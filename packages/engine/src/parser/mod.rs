@@ -1,10 +1,8 @@
 use std::{iter::Peekable, rc::Rc, slice::Iter};
 
-use ast::{
-    ArithmeticOperator, AssignmentOperator, Block, Expression, Function, Identifier, Literal,
-    LogicalOperator, MatchCase, ProgramTree, Statement, UnaryOperator, Variable,
-};
+use ast::{Parse, ProgramTree};
 use error::ParserResult;
+use stmt::{Statement, Variable};
 
 use crate::{
     component::{ComponentErrors, ComponentIter},
@@ -16,6 +14,8 @@ use crate::{
 pub use error::{ParserError, ParserErrorKind};
 
 pub mod ast;
+pub mod expr;
+pub mod stmt;
 mod error;
 
 // MARK: Parser Struct
@@ -30,6 +30,9 @@ pub struct Parser<'a> {
     source: crate::error::SourceFile,
 }
 
+
+
+#[macro_export]
 macro_rules! let_expr {
     ($name:ident = $exp:expr) => {
         let Some($name) = $exp else {
@@ -66,6 +69,10 @@ impl<'a> Parser<'a> {
 
     // MARK: Parser Main
     pub fn parse(&mut self) -> &ProgramTree {
+        if !self.tree.is_empty() {
+            return &self.tree;
+        }
+
         while let Some(token) = self.peek().cloned() {
             match self.parse_statement(token) {
                 Ok(Some(statement)) => self.tree.push(statement),
@@ -95,58 +102,32 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Statement
-    fn parse_statement(&mut self, token: &LexerToken) -> ParserResult<Option<Statement>> {
+    fn parse_statement(&mut self, token: &LexerToken) -> ParserResult<Statement> {
         use LexerTokenKind::*;
-        Ok(match &token.kind {
-            Var => self.stmt_var()?,
-            Function => self.stmt_func()?,
-            If => self.stmt_if()?,
-            Match => self.stmt_match()?,
-            For => self.stmt_for()?,
-            While => self.stmt_while()?,
-            Return => self.stmt_return()?,
-            Break => Some(Statement::Break),
-            Continue => Some(Statement::Continue),
-            EOF | EOL => return Ok(None),
-
-            _ => {
-                let_expr!(expr = self.expression()?);
-                Some(Statement::Expression(Box::new(expr)))
-            }
-        })
-    }
-
-    // MARK: Variable
-    fn stmt_var(&mut self) -> ParserResult<Option<Statement>> {
-        self.expect_token(&LexerTokenKind::Var)?;
-        let value = self.parse_var()?;
-        self.expect_terminator()?;
-
-        Ok(Some(Statement::Variable(Box::from(value))))
-    }
-
-    fn parse_var(&mut self) -> ParserResult<Variable> {
-        let identifier = self
-            .expect_token(&LexerTokenKind::Identifier)?
-            .as_identifier()?
-            .clone();
-
-        let strict_type = self.parse_explicit_type()?;
-
-        let value = if self.next_if_eq(&&LexerTokenKind::Equal).is_some() {
-            self.expression()?
-        } else {
-            None
+        
+        let kind = match &token.kind {
+            Var => Variable::parse(self)
         };
 
-        let variable = Variable {
-            name: identifier.to_owned(),
-            strict_type,
-            value,
-        };
+        // Ok(match &token.kind {
+        //     Var => Variable::parse(self)?,
+        //     Function => self.stmt_func()?,
+        //     If => self.stmt_if()?,
+        //     Match => self.stmt_match()?,
+        //     For => self.stmt_for()?,
+        //     While => self.stmt_while()?,
+        //     Return => self.stmt_return()?,
+        //     Break => Some(Statement::Break),
+        //     Continue => Some(Statement::Continue),
+        //     EOF | EOL => return Ok(None),
 
-        Ok(variable)
+        //     _ => {
+        //         let_expr!(expr = self.expression()?);
+        //         StatementKind::Expression(Box::new(expr))
+        //     }
+        // })
     }
+    
 
     fn parse_explicit_type(&mut self) -> ParserResult<Option<String>> {
         Ok(if self.next_if_eq(&&LexerTokenKind::Colon).is_some() {
@@ -162,7 +143,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Function
-    fn stmt_func(&mut self) -> ParserResult<Option<Statement>> {
+    fn stmt_func(&mut self) -> ParserResult<Option<StatementKind>> {
         self.expect_token(&LexerTokenKind::Function)?;
 
         let identifier = self
@@ -207,11 +188,11 @@ impl<'a> Parser<'a> {
             body,
         };
 
-        Ok(Some(Statement::Function(Box::from(function))))
+        Ok(Some(StatementKind::Function(Box::from(function))))
     }
 
     // MARK: For
-    fn stmt_for(&mut self) -> ParserResult<Option<Statement>> {
+    fn stmt_for(&mut self) -> ParserResult<Option<StatementKind>> {
         self.expect_token(&LexerTokenKind::For)?;
 
         let identifier = self
@@ -229,11 +210,11 @@ impl<'a> Parser<'a> {
 
         let block = self.stmt_block()?;
 
-        Ok(Some(Statement::For(Box::from((variable, expr, block)))))
+        Ok(Some(StatementKind::For(Box::from((variable, expr, block)))))
     }
 
     // MARK: While
-    fn stmt_while(&mut self) -> ParserResult<Option<Statement>> {
+    fn stmt_while(&mut self) -> ParserResult<Option<StatementKind>> {
         self.expect_token(&LexerTokenKind::While)?;
 
         let_expr!(condition = self.expression()?);
@@ -241,24 +222,24 @@ impl<'a> Parser<'a> {
 
         let block = self.stmt_block()?;
 
-        Ok(Some(Statement::While(Box::from((condition, block)))))
+        Ok(Some(StatementKind::While(Box::from((condition, block)))))
     }
 
     // MARK: Return
-    fn stmt_return(&mut self) -> ParserResult<Option<Statement>> {
+    fn stmt_return(&mut self) -> ParserResult<Option<StatementKind>> {
         self.expect_token(&LexerTokenKind::Return)?;
 
         let value = self.expression()?;
 
-        Ok(Some(Statement::Return(Box::from(value))))
+        Ok(Some(StatementKind::Return(Box::from(value))))
     }
 
-    fn expression(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expression(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         self.expr_assignment()
     }
 
     // MARK: Assignment
-    fn expr_assignment(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_assignment(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(lhs = self.expr_logic_or()?);
 
         if let Some(op_token) = self.next_if_eq_mul(&[
@@ -271,7 +252,7 @@ impl<'a> Parser<'a> {
             let_expr!(rhs = self.expr_logic_or()?);
 
             if let WithCursor {
-                value: Expression::Identifier(_),
+                value: ExpressionKind::Identifier(_),
                 ..
             } = lhs
             {
@@ -280,7 +261,7 @@ impl<'a> Parser<'a> {
                 return Ok(Some(WithCursor::create_with(
                     lhs.start,
                     rhs.end,
-                    Expression::Assignment(Box::from((
+                    ExpressionKind::Assignment(Box::from((
                         lhs,
                         WithCursor::create_with(op_token.start, op_token.end, operator),
                         rhs,
@@ -293,7 +274,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Logic OR
-    fn expr_logic_or(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_logic_or(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut lhs = self.expr_logic_and()?);
 
         while let Some(token_or) = self.next_if_eq(&&LexerTokenKind::Or) {
@@ -304,7 +285,7 @@ impl<'a> Parser<'a> {
             lhs = WithCursor::create_with(
                 lhs.start,
                 rhs.end,
-                Expression::Logical(Box::from((
+                ExpressionKind::Logic(Box::from((
                     lhs,
                     WithCursor::create_with(token_or.start, token_or.end, operator),
                     rhs,
@@ -316,7 +297,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Logic AND
-    fn expr_logic_and(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_logic_and(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut lhs = self.expr_cmp_equality()?);
 
         while let Some(token_and) = self.next_if_eq(&&LexerTokenKind::And) {
@@ -327,7 +308,7 @@ impl<'a> Parser<'a> {
             lhs = WithCursor::create_with(
                 lhs.start,
                 rhs.end,
-                Expression::Logical(Box::from((
+                ExpressionKind::Logic(Box::from((
                     lhs,
                     WithCursor::create_with(token_and.start, token_and.end, operator),
                     rhs,
@@ -339,7 +320,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Cmp Equal
-    fn expr_cmp_equality(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_cmp_equality(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut lhs = self.expr_cmp_lgt()?);
 
         while let Some(token_eq) =
@@ -352,7 +333,7 @@ impl<'a> Parser<'a> {
             lhs = WithCursor::create_with(
                 lhs.start,
                 rhs.end,
-                Expression::Logical(Box::from((
+                ExpressionKind::Logic(Box::from((
                     lhs,
                     WithCursor::create_with(token_eq.start, token_eq.end, operator),
                     rhs,
@@ -364,7 +345,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Cmp LGT
-    fn expr_cmp_lgt(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_cmp_lgt(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut lhs = self.expr_arith_add_sub()?);
 
         while let Some(token_cmp) = self.next_if_eq_mul(&[
@@ -380,7 +361,7 @@ impl<'a> Parser<'a> {
             lhs = WithCursor::create_with(
                 lhs.start,
                 rhs.end,
-                Expression::Logical(Box::from((
+                ExpressionKind::Logic(Box::from((
                     lhs,
                     WithCursor::create_with(token_cmp.start, token_cmp.end, operator),
                     rhs,
@@ -392,7 +373,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Arith Add Sub
-    fn expr_arith_add_sub(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_arith_add_sub(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut lhs = self.expr_arith_mul_div()?);
 
         while let Some(token_arith) =
@@ -405,7 +386,7 @@ impl<'a> Parser<'a> {
             lhs = WithCursor::create_with(
                 lhs.start,
                 rhs.end,
-                Expression::Arithmetic(Box::from((
+                ExpressionKind::Arithmetic(Box::from((
                     lhs,
                     WithCursor::create_with(token_arith.start, token_arith.end, operator),
                     rhs,
@@ -417,7 +398,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Arith Mul Div
-    fn expr_arith_mul_div(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_arith_mul_div(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut lhs = self.expr_unary()?);
 
         while let Some(token_arith) =
@@ -430,7 +411,7 @@ impl<'a> Parser<'a> {
             lhs = WithCursor::create_with(
                 lhs.start,
                 rhs.end,
-                Expression::Arithmetic(Box::from((
+                ExpressionKind::Arithmetic(Box::from((
                     lhs,
                     WithCursor::create_with(token_arith.start, token_arith.end, operator),
                     rhs,
@@ -442,7 +423,7 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Unary
-    fn expr_unary(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_unary(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let start = self.cursor;
         if let Some(token_unary) = self.next_if_eq(&&LexerTokenKind::Not) {
             let_expr!(rhs = self.expr_unary()?);
@@ -452,7 +433,7 @@ impl<'a> Parser<'a> {
             return Ok(Some(WithCursor::create_with(
                 start,
                 rhs.end,
-                Expression::Unary(Box::from((
+                ExpressionKind::Unary(Box::from((
                     WithCursor::create_with(token_unary.start, token_unary.end, operator),
                     rhs,
                 ))),
@@ -465,10 +446,10 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Func Invoke
-    fn expr_func_invoke(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_func_invoke(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut expr = self.expr_primary()?);
 
-        if let Expression::Identifier(identifier) = &expr.value {
+        if let ExpressionKind::Identifier(identifier) = &expr.value {
             if self.next_if_eq(&&LexerTokenKind::LParen).is_some() {
                 let mut args = vec![];
                 let mut end = self.cursor;
@@ -493,7 +474,7 @@ impl<'a> Parser<'a> {
                 expr = WithCursor::create_with(
                     expr.start,
                     end,
-                    Expression::FunctionCall(Box::from((identifier.to_string(), args))),
+                    ExpressionKind::FunctionCall(Box::from((identifier.to_string(), args))),
                 )
             }
         }
@@ -502,28 +483,28 @@ impl<'a> Parser<'a> {
     }
 
     // MARK: Literals/Syntax
-    fn expr_primary(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_primary(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(token = self.next());
 
         let expr = match token.kind {
-            LexerTokenKind::String => Expression::Literal(Box::from(Literal::String(Box::from(
+            LexerTokenKind::String => ExpressionKind::Literal(Box::from(Literal::String(Box::from(
                 token.as_string()?.to_owned(),
             )))),
 
             LexerTokenKind::Integer => {
-                Expression::Literal(Box::from(Literal::Integer(*token.as_integer()?)))
+                ExpressionKind::Literal(Box::from(Literal::Integer(*token.as_integer()?)))
             }
 
             LexerTokenKind::Boolean => {
-                Expression::Literal(Box::from(Literal::Boolean(*token.as_boolean()?)))
+                ExpressionKind::Literal(Box::from(Literal::Boolean(*token.as_boolean()?)))
             }
 
             LexerTokenKind::Identifier => {
-                Expression::Identifier(Box::from(Identifier::from(token.as_identifier()?)))
+                ExpressionKind::Identifier(Box::from(Identifier::from(token.as_identifier()?)))
             }
 
             LexerTokenKind::ShellCommand => {
-                Expression::ShellCommand(Box::from(token.as_shell_command()?.to_owned()))
+                ExpressionKind::ShellCommand(Box::from(token.as_shell_command()?.to_owned()))
             }
 
             LexerTokenKind::LParen => {
@@ -555,8 +536,8 @@ impl<'a> Parser<'a> {
     // MARK: Range
     fn expr_range(
         &mut self,
-        lhs: WithCursor<Expression>,
-    ) -> ParserResult<Option<WithCursor<Expression>>> {
+        lhs: WithCursor<ExpressionKind>,
+    ) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(peek = self.peek());
         let inclusive = match peek.kind {
             LexerTokenKind::Range => false,
@@ -570,23 +551,23 @@ impl<'a> Parser<'a> {
         Ok(Some(WithCursor::create_with(
             lhs.start,
             rhs.end,
-            Expression::Range(Box::from((lhs, rhs, inclusive))),
+            ExpressionKind::Range(Box::from((lhs, rhs, inclusive))),
         )))
     }
 
     // MARK: Grouping
-    fn expr_group(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_group(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(mut expr = self.expression()?);
 
         self.expect_token(&LexerTokenKind::RParen)?;
 
-        expr.value = Expression::Group(Box::from(expr.value));
+        expr.value = ExpressionKind::Group(Box::from(expr.value));
 
         Ok(Some(expr))
     }
 
     // MARK: If
-    fn expr_if(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_if(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let_expr!(condition = self.expression()?);
 
         let start = self.cursor;
@@ -620,21 +601,21 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let if_expr = Expression::If(Box::from((condition, truthy_block, else_condition)));
+        let if_expr = ExpressionKind::If(Box::from((condition, truthy_block, else_condition)));
 
         Ok(Some(WithCursor::create_with(start, self.cursor, if_expr)))
     }
 
-    fn stmt_if(&mut self) -> ParserResult<Option<Statement>> {
+    fn stmt_if(&mut self) -> ParserResult<Option<StatementKind>> {
         self.expect_token(&LexerTokenKind::If)?;
 
         let_expr!(expr = self.expr_if()?);
 
-        Ok(Some(Statement::If(Box::from(expr))))
+        Ok(Some(StatementKind::If(Box::from(expr))))
     }
 
     // MARK: Match
-    fn expr_match(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_match(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let start = self.cursor;
 
         let_expr!(pattern = self.expression()?);
@@ -691,16 +672,16 @@ impl<'a> Parser<'a> {
         Ok(Some(WithCursor::create_with(
             start,
             self.cursor,
-            Expression::Match(Box::from((pattern, hash_map))),
+            ExpressionKind::Match(Box::from((pattern, hash_map))),
         )))
     }
 
-    fn stmt_match(&mut self) -> ParserResult<Option<Statement>> {
+    fn stmt_match(&mut self) -> ParserResult<Option<StatementKind>> {
         self.expect_token(&LexerTokenKind::Match)?;
 
         let_expr!(expr = self.expr_match()?);
 
-        Ok(Some(Statement::Match(Box::from(expr))))
+        Ok(Some(StatementKind::Match(Box::from(expr))))
     }
 
     // MARK: Block Parsing
@@ -718,13 +699,13 @@ impl<'a> Parser<'a> {
         Ok(WithCursor::create_with(start, self.cursor, vec![stmt]))
     }
 
-    fn expr_block(&mut self) -> ParserResult<Option<WithCursor<Expression>>> {
+    fn expr_block(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         let block = self.stmt_block()?;
 
         let block = WithCursor::create_with(
             block.start,
             block.end,
-            Expression::Block(Box::from(block.value)),
+            ExpressionKind::Block(Box::from(block.value)),
         );
 
         Ok(Some(block))

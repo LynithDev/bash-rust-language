@@ -37,11 +37,11 @@ macro_rules! token_list_comparison {
 token_list_comparison!(
     basic_variable,
     "var test = 50",
-    [Statement::Variable(Box::new(Variable {
+    [StatementKind::Variable(Box::new(Variable {
         name: String::from("test"),
         strict_type: None,
         value: Some(WithCursor {
-            value: Expression::Literal(Box::new(Literal::Integer(50))),
+            value: ExpressionKind::Literal(Box::new(Literal::Integer(50))),
             start: Cursor::from(1, 12),
             end: Cursor::from(1, 14),
         })
@@ -55,7 +55,7 @@ for i in 0..5 {
     $echo #{i}
 }
     ",
-    [Statement::For(Box::from((
+    [StatementKind::For(Box::from((
         Variable {
             name: String::from("i"),
             strict_type: None,
@@ -64,16 +64,16 @@ for i in 0..5 {
         WithCursor::create_with(
             Cursor::from_full(1, 10, 9),
             Cursor::from_full(1, 14, 13),
-            Expression::Range(Box::from((
+            ExpressionKind::Range(Box::from((
                 WithCursor::create_with(
                     Cursor::from_full(1, 10, 9),
                     Cursor::from_full(1, 11, 10),
-                    Expression::Literal(Box::from(Literal::Integer(0)))
+                    ExpressionKind::Literal(Box::from(Literal::Integer(0)))
                 ),
                 WithCursor::create_with(
                     Cursor::from_full(1, 13, 12),
                     Cursor::from_full(1, 14, 13),
-                    Expression::Literal(Box::from(Literal::Integer(5)))
+                    ExpressionKind::Literal(Box::from(Literal::Integer(5)))
                 ),
                 false
             )))
@@ -82,11 +82,11 @@ for i in 0..5 {
             Cursor::from_full(2, 1, 16),
             Cursor::from_full(3, 2, 32),
             vec![
-                Statement::Expression(Box::from(
+                StatementKind::Expression(Box::from(
                     WithCursor::create_with(
                         Cursor::from_full(2, 5, 20),
                         Cursor::from_full(2, 15, 30),
-                        Expression::ShellCommand(
+                        ExpressionKind::ShellCommand(
                             Box::from((
                                 String::from("echo"),
                                 Some(

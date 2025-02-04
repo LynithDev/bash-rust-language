@@ -1,2 +1,1 @@
-var test = 10
-$echo #{test}
+var test = 10 + 15

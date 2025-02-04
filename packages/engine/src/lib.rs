@@ -1,15 +1,17 @@
 #![allow(incomplete_features)]
 #![feature(try_blocks)]
 #![feature(guard_patterns)]
+#![feature(trait_alias)]
 
 #[macro_use]
 extern crate log;
 
 use std::path::PathBuf;
-
 use component::ComponentErrors;
 use error::EngineResult;
 use lexer::Lexer;
+use parser::Parser;
+use transpiler::Transpiler;
 
 pub mod component;
 pub mod constants;
@@ -17,10 +19,8 @@ pub mod cursor;
 pub mod error;
 pub mod lexer;
 pub mod parser;
+pub mod transpiler;
 
-use parser::Parser;
-
-#[derive(Default)]
 pub struct Engine {}
 
 impl Engine {
@@ -73,11 +73,11 @@ impl Engine {
             source_file,
         );
 
-        let ast = parser.parse();
-        
-        println!("{:#?}", &ast);
-
+        parser.parse();
         parser.print_errors();
+
+        let mut transpiler = Transpiler::create(&transpiler::TranspilerTarget::Bash, parser.parse());
+        println!("---START---\n{}\n---END---", transpiler.transpile());
 
 
         Ok(0)

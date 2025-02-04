@@ -3,8 +3,7 @@ use std::fmt::Display;
 use lang_macro::EnumVariantsTrait;
 
 use crate::{
-    error::{EngineErrorKind, EngineResult},
-    cursor::Cursor,
+    cursor::Cursor, error::{EngineErrorKind, EngineResult}, parser::expr::ShellCommand
 };
 
 #[repr(u8)]
@@ -170,8 +169,6 @@ impl LexerLiteral {
         }
     }
 }
-
-pub type ShellCommand = (String, Option<String>);
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct LexerToken {
