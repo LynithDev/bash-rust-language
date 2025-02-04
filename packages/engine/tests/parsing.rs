@@ -7,7 +7,8 @@ macro_rules! token_list_comparison {
             let code = $code;
 
             // Step 1
-            let mut lexer = lang_engine::lexer::Lexer::create(code, None);
+            let source_file = lang_engine::error::SourceFile::from(code.to_string(), None);
+            let mut lexer = lang_engine::lexer::Lexer::create(&source_file);
             lexer.tokens();
 
             if lexer.has_errors() {
@@ -15,8 +16,7 @@ macro_rules! token_list_comparison {
             }
 
             // Step 2
-            let source = lexer.source().clone();
-            let mut parser = lang_engine::parser::Parser::create(lexer.tokens(), source);
+            let mut parser = lang_engine::parser::Parser::create(lexer.tokens(), &source_file);
             parser.parse();
 
             let expected = vec![

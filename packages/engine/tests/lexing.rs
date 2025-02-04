@@ -4,16 +4,14 @@ macro_rules! token_list_comparison {
         fn $name() -> lang_engine::error::EngineResult<()> {
             let code = $code;
 
-            let mut lexer = lang_engine::lexer::Lexer::create(code, None);
-            let token_list = lexer.tokens();
-
-            println!("{:#?}", token_list);
+            let source_file = lang_engine::error::SourceFile::from(code.to_string(), None);
+            let mut lexer = lang_engine::lexer::Lexer::create(&source_file);
 
             let expected = vec![
                 $($exp),+
             ];
 
-            pretty_assertions::assert_eq!(&expected, token_list);
+            pretty_assertions::assert_eq!(&expected, lexer.tokens());
 
             use lang_engine::{cursor::Cursor, component::ComponentErrors};
             if lexer.has_errors() {
@@ -32,7 +30,8 @@ macro_rules! custom_assert {
             use lang_engine::component::ComponentErrors;
             let code = $code;
 
-            let mut $lexer = lang_engine::lexer::Lexer::create(code, None);
+            let source_file = lang_engine::error::SourceFile::from(code.to_string(), None);
+            let mut $lexer = lang_engine::lexer::Lexer::create(&source_file);
             $lexer.tokens();
 
             $block
@@ -531,15 +530,10 @@ mod integer_parsing {
         (lexer) => {
             assert!(lexer.has_errors());
             if let Some(err) = lexer.fetch_errors().first() {
-                match err {
-                    lang_engine::error::EngineErrorKind::LexerError(err) => {
-                        pretty_assertions::assert_eq!(
-                            err.kind,
-                            lang_engine::lexer::LexerErrorKind::IntegerOverflow("9999999999999999999".to_string())
-                        );
-                    },
-                    err => return Err(err.clone())
-                }
+                pretty_assertions::assert_eq!(
+                    err.kind,
+                    lang_engine::lexer::LexerErrorKind::IntegerOverflow("9999999999999999999".to_string())
+                );
             }
 
             Ok(())

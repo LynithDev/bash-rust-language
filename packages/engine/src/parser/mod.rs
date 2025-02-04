@@ -9,7 +9,7 @@ use error::ParserResult;
 use crate::{
     component::{ComponentErrors, ComponentIter},
     cursor::{Cursor, WithCursor},
-    error::{EngineErrorKind, ErrorList},
+    error::SourceFile,
     lexer::tokens::{LexerToken, LexerTokenKind, LexerTokenList},
 };
 
@@ -23,11 +23,9 @@ pub struct Parser<'a> {
     tokens: Peekable<Iter<'a, LexerToken>>,
     token: Option<LexerToken>,
     cursor: Cursor,
-    errors: ErrorList,
+    errors: Vec<ParserError>,
     tree: ProgramTree,
-
-    #[cfg(feature = "cli")]
-    source: crate::error::SourceFile,
+    source_file: &'a SourceFile,
 }
 
 macro_rules! let_expr {
@@ -47,17 +45,15 @@ macro_rules! let_expr {
 impl<'a> Parser<'a> {
     pub fn create(
         tokens: &'a LexerTokenList,
-        #[cfg(feature = "cli")] source: crate::error::SourceFile,
+        source_file: &'a SourceFile,
     ) -> Self {
         let parser = Self {
             tokens: tokens.iter().peekable(),
             token: None,
             cursor: Cursor::create(),
-            errors: ErrorList::new(),
+            errors: Vec::new(),
             tree: ProgramTree::new(),
-
-            #[cfg(feature = "cli")]
-            source,
+            source_file,
         };
 
         debug!("created parser");
@@ -66,6 +62,10 @@ impl<'a> Parser<'a> {
 
     // MARK: Parser Main
     pub fn parse(&mut self) -> &ProgramTree {
+        if !self.tree.is_empty() {
+            return &self.tree;
+        }
+
         while let Some(token) = self.peek().cloned() {
             match self.parse_statement(token) {
                 Ok(Some(statement)) => self.tree.push(statement),
@@ -84,14 +84,12 @@ impl<'a> Parser<'a> {
     }
 
     fn add_error(&mut self, start: Cursor, end: Cursor, kind: ParserErrorKind) {
-        self.errors.push(EngineErrorKind::ParserError(ParserError {
+        self.errors.push(ParserError {
             start,
             end,
             kind: Box::new(kind),
-
-            #[cfg(feature = "cli")]
-            source_file: self.get_source_sliced(start, end),
-        }));
+            source_file: self.source().sliced(start, end),
+        });
     }
 
     // MARK: Statement
@@ -774,14 +772,13 @@ impl<'a> Parser<'a> {
 }
 
 // MARK: Comp Error
-impl ComponentErrors for Parser<'_> {
-    fn fetch_errors(&self) -> &ErrorList {
+impl ComponentErrors<ParserError> for Parser<'_> {
+    fn fetch_errors(&self) -> &Vec<ParserError> {
         &self.errors
     }
 
-    #[cfg(feature = "cli")]
     fn source(&self) -> &crate::error::SourceFile {
-        &self.source
+        self.source_file
     }
 }
 

@@ -1,12 +1,11 @@
-#[cfg(feature = "cli")] 
 use std::fmt::Display;
-
-#[cfg(feature = "cli")]
 use crate::error::{CodeError, SourceFile};
 
 use crate::cursor::Cursor;
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, lang_macro::EnumVariants)]
+use super::tokens::LexerTokenKind;
+
+#[derive(thiserror::Error, Debug, lang_macro::EnumVariants, PartialEq, Eq, Clone)]
 pub enum LexerErrorKind {
     #[error("unexpected end of input")]
     UnexpectedEnd,
@@ -16,31 +15,28 @@ pub enum LexerErrorKind {
     IntegerOverflow(String),
     #[error("expected character '{expected}' but found {found:?}")]
     ExpectedCharacter { expected: String, found: Option<char> },
+    #[error("failed to get value as '{0}' from literal '{1}'")]
+    LiteralExtractionError(LexerTokenKind, LexerTokenKind),
     #[error("unknown token")]
     UnknownToken
 }
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(not(feature = "cli"), error("{kind}"))]
+#[derive(thiserror::Error, Debug, PartialEq, Eq, Clone)]
 pub struct LexerError {
     pub kind: LexerErrorKind,
     pub start: Cursor,
     pub end: Cursor,
-
-    #[cfg(feature = "cli")]
     pub source_file: SourceFile,
 }
 
-pub(super) type LexerResult<T> = std::result::Result<T, LexerErrorKind>;
+pub type LexerResult<T> = std::result::Result<T, LexerErrorKind>;
 
-#[cfg(feature = "cli")]
 impl Display for LexerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.format_error(f)
     }
 }
 
-#[cfg(feature = "cli")]
 impl CodeError<LexerErrorKind> for LexerError {
     fn kind(&self) -> &LexerErrorKind {
         &self.kind

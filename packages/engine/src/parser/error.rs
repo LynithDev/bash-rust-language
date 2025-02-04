@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use crate::{cursor::Cursor, error::CodeError, lexer::tokens::LexerTokenKind};
+use crate::{cursor::Cursor, error::{CodeError, SourceFile}, lexer::tokens::LexerTokenKind};
 
-#[derive(thiserror::Error, lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
+#[derive(thiserror::Error, lang_macro::EnumVariants, Debug, PartialEq, Eq, Clone)]
 pub enum ParserErrorKind {
     #[error("{0}")]
-    EngineError(#[from] crate::error::EngineErrorKind),
+    EngineError(#[from] crate::lexer::LexerErrorKind),
     #[error("couldn't convert lexer token {0} to ast node")]
     ConvertError(LexerTokenKind),
     #[error("expected token '{0:?}' but found '{1:?}'")]
@@ -22,29 +22,22 @@ pub enum ParserErrorKind {
     UnknownToken,
 }
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(not(feature = "cli"), error("{kind}"))]
+#[derive(thiserror::Error, Debug, PartialEq, Eq, Clone)]
 pub struct ParserError {
     pub kind: Box<ParserErrorKind>,
     pub start: Cursor,
     pub end: Cursor,
-
-    #[cfg(feature = "cli")]
     pub source_file: SourceFile,
 }
 
-#[cfg(feature = "cli")]
-pub(super) type SourceFile = Box<(Option<std::path::PathBuf>, String)>;
-pub(super) type ParserResult<T> = std::result::Result<T, ParserErrorKind>;
+pub type ParserResult<T> = std::result::Result<T, ParserErrorKind>;
 
-#[cfg(feature = "cli")]
 impl Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.format_error(f)
     }
 }
 
-#[cfg(feature = "cli")]
 impl CodeError<ParserErrorKind> for ParserError {
     fn kind(&self) -> &ParserErrorKind {
         &self.kind

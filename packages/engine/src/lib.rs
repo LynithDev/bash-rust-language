@@ -8,77 +8,73 @@ extern crate log;
 use std::path::PathBuf;
 
 use component::ComponentErrors;
-use error::EngineResult;
-use lexer::Lexer;
+use error::{EngineResult, SourceFile};
+
+pub use lexer::Lexer;
+pub use parser::Parser;
+use transpiler::{Transpiler, TranspilerTarget};
 
 pub mod component;
 pub mod constants;
 pub mod cursor;
 pub mod error;
+
 pub mod lexer;
 pub mod parser;
-
-use parser::Parser;
+pub mod transpiler;
 
 #[derive(Default)]
-pub struct Engine {}
+pub struct Engine {
+    target: TranspilerTarget,
+}
 
 impl Engine {
-    pub fn create() -> Self {
-        debug!("created engine");
-        Self {}
+    pub fn create(target: TranspilerTarget) -> Self {
+        Self {
+            target
+        }
     }
 
     pub fn exec_file(&mut self, file: &PathBuf) -> EngineResult<i32> {
-        debug!("executing file {file:?}");
+        debug!("attempting to read file {file:?}");
 
-        let code = if file.is_file() && (file.is_absolute() || file.is_relative()) {
-            std::fs::read_to_string(file).map_err(|_| error::EngineErrorKind::UnknownError)?
-        } else {
-            return Err(error::EngineErrorKind::UnknownError);
-        };
+        if !file.is_file() {
+            return Err(error::EngineErrorKind::ExpectedFileError);
+        }
 
-        let mut lexer = Lexer::create(
-            &code,
-            #[cfg(feature = "cli")]
-            Some(file.clone()),
-        );
-        self.exec_post(&mut lexer)
+        let code = std::fs::read_to_string(file)?;
+        
+        let path = file
+            .canonicalize()
+            .unwrap_or(file.clone())
+            .to_string_lossy()
+            .to_string();
+
+        self.exec_source_file(SourceFile::from(code, Some(path)))
     }
 
     pub fn exec(&mut self, code: &str) -> EngineResult<i32> {
-        debug!("executing script");
-
-        let mut lexer = Lexer::create(
-            code,
-            #[cfg(feature = "cli")]
-            None,
-        );
-        self.exec_post(&mut lexer)
+        self.exec_source_file(SourceFile::from(code.to_string(), None))
     }
 
-    fn exec_post(&mut self, lexer: &mut Lexer) -> EngineResult<i32> {
-        #[cfg(feature = "cli")]
-        let source_file = lexer.source().clone();
-        
-        lexer.tokens();  
+    pub fn exec_source_file(&mut self, source_file: error::SourceFile) -> EngineResult<i32> {
+        let mut lexer = Lexer::create(&source_file);
+
+        lexer.tokens();
         if lexer.has_errors() {
             lexer.print_errors();
-            return Ok(1);
+            return Err(error::EngineErrorKind::ExecError);
         }
 
-        let mut parser = Parser::create(
-            lexer.tokens(),
-            #[cfg(feature = "cli")]
-            source_file,
-        );
+        let mut parser = Parser::create(lexer.tokens(), &source_file);
+        parser.parse();
+        if parser.has_errors() {
+            parser.print_errors();
+            return Err(error::EngineErrorKind::ExecError);
+        }
 
-        let ast = parser.parse();
-        
-        println!("{:#?}", &ast);
-
-        parser.print_errors();
-
+        let mut transpiler = Transpiler::create(&self.target, parser.parse());
+        println!("---START---\n{}\n---END---", transpiler.transpile());
 
         Ok(0)
     }

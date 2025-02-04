@@ -1,16 +1,19 @@
-#[cfg(feature = "cli")]
 use colored::Colorize;
 
-use crate::lexer::tokens::LexerTokenKind;
+use crate::cursor::Cursor;
 
-#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone)]
+#[derive(thiserror::Error, Debug)]
 pub enum EngineErrorKind {
     #[error("{0}")]
     LexerError(#[from] crate::lexer::LexerError),
     #[error("{0}")]
     ParserError(#[from] crate::parser::ParserError),
-    #[error("failed to get value as '{0}' from literal '{1}'")]
-    LiteralExtractionError(LexerTokenKind, LexerTokenKind),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error("exec error")]
+    ExecError,
+    #[error("expected file")]
+    ExpectedFileError,
     #[error("an unreachable error has occurred. this shouldn't ever happen")]
     Unreachable,
     #[error("an unknown error has occurred")]
@@ -18,12 +21,40 @@ pub enum EngineErrorKind {
 }
 
 pub type EngineResult<T> = std::result::Result<T, EngineErrorKind>;
-pub type ErrorList = Vec<EngineErrorKind>;
 
-#[cfg(feature = "cli")]
-pub(super) type SourceFile = Box<(Option<std::path::PathBuf>, String)>;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceFile {
+    path: String,
+    code: String,
+}
 
-#[cfg(feature = "cli")]
+impl SourceFile {
+    pub fn from(code: String, path: Option<String>) -> Self {
+        Self {
+            code,
+            path: path.unwrap_or(String::from("virtual"))
+        }
+    }
+
+    pub fn get_path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn get_code(&self) -> &str {
+        &self.code
+    }
+
+    pub fn sliced(&self, start: Cursor, end: Cursor) -> SourceFile {
+        let start_index = start.index() as usize;
+        let end_index = end.index() as usize;
+
+        let code = self.get_code();
+        let slice = &code[start_index..end_index.min(code.len())];
+
+        SourceFile::from(slice.to_string(), Some(self.path.clone()))
+    }
+}
+
 pub trait CodeError<T>
 where T: lang_macro::EnumVariantsTrait + ToString {
     fn kind(&self) -> &T;
@@ -39,8 +70,8 @@ where T: lang_macro::EnumVariantsTrait + ToString {
             self.kind().to_string().bold(),
         )?;
 
-        let (path, source) = *self.source_file().clone();
-        let (path, source) = (path.map_or("VM".to_string(), |path| path.to_string_lossy().to_string()), source);
+        let path = self.source_file().get_path();
+        let code = self.source_file().get_code();
 
         writeln!(f,
             "  {} {}",
@@ -73,7 +104,7 @@ where T: lang_macro::EnumVariantsTrait + ToString {
                 " ".repeat(max_line_len - line_len),
                 line,
                 "|".bright_blue().bold(),
-                source.trim()
+                code.trim()
             )?;
         }
 

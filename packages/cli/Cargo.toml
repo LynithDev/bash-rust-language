@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-lang_engine = { workspace = true, features = ["cli"] }
+lang_engine = { workspace = true, features = [] }
 
 # logging
 log = { workspace = true }

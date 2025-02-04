@@ -4,10 +4,7 @@ use error::LexerResult;
 use tokens::{LexerLiteral, LexerToken, LexerTokenKind, LexerTokenList};
 
 use crate::{
-    component::{ComponentErrors, ComponentIter},
-    constants::{MAX_I32_LEN, MAX_I64_LEN},
-    error::{EngineErrorKind, ErrorList},
-    cursor::Cursor,
+    component::{ComponentErrors, ComponentIter}, cursor::Cursor, error::SourceFile
 };
 
 pub use error::{LexerError, LexerErrorKind};
@@ -17,54 +14,35 @@ pub mod tokens;
 
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
-    errors: ErrorList,
+    errors: Vec<LexerError>,
     cursor: Cursor,
     tokens: LexerTokenList,
     max_int_len: u8,
-
-    #[cfg(feature = "cli")]
-    source: crate::error::SourceFile,
+    source_file: &'a SourceFile,
 }
 
 impl<'a> Lexer<'a> {
     pub fn create(
-        input: &'a str,
-        #[cfg(feature = "cli")] path: Option<std::path::PathBuf>,
+        source_file: &'a SourceFile,
     ) -> Self {
         Self::create_bits(
-            input,
-            #[cfg(feature = "cli")]
-            path,
-            MAX_I64_LEN,
-        )
-    }
-
-    pub fn create_32b(
-        input: &'a str,
-        #[cfg(feature = "cli")] path: Option<std::path::PathBuf>,
-    ) -> Self {
-        Self::create_bits(
-            input,
-            #[cfg(feature = "cli")]
-            path,
-            MAX_I32_LEN,
+            source_file,
+            #[cfg(target_pointer_width = "32")] crate::constants::MAX_I32_LEN,
+            #[cfg(target_pointer_width = "64")] crate::constants::MAX_I64_LEN,
         )
     }
 
     pub fn create_bits(
-        input: &'a str,
-        #[cfg(feature = "cli")] path: Option<std::path::PathBuf>,
+        source_file: &'a SourceFile,
         max_int_len: u8,
     ) -> Self {
         let lexer = Self {
-            chars: input.trim().chars().peekable(),
-            errors: ErrorList::new(),
+            chars: source_file.get_code().trim().chars().peekable(),
+            errors: Vec::new(),
             cursor: Cursor::create(),
             tokens: LexerTokenList::new(),
             max_int_len,
-
-            #[cfg(feature = "cli")]
-            source: Box::from((path, input.to_string())),
+            source_file,
         };
 
         debug!("created lexer");
@@ -253,13 +231,12 @@ impl<'a> Lexer<'a> {
         start: Cursor,
         err: LexerErrorKind
     ) {
-        self.errors.push(EngineErrorKind::LexerError(LexerError {
-            #[cfg(feature = "cli")]
-            source_file: self.get_source_sliced(start, self.cursor),
+        self.errors.push(LexerError {
+            source_file: self.source().sliced(start, self.cursor),
             start,
             end: self.cursor,
             kind: err,
-        }))
+        })
     }
 
     /// Consumes a single-line comment (aka skips to the end of the line and returns nothing)
@@ -487,14 +464,13 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl ComponentErrors for Lexer<'_> {
-    fn fetch_errors(&self) -> &ErrorList {
+impl ComponentErrors<LexerError> for Lexer<'_> {
+    fn fetch_errors(&self) -> &Vec<LexerError> {
         &self.errors
     }
 
-    #[cfg(feature = "cli")]
     fn source(&self) -> &crate::error::SourceFile {
-        &self.source
+        self.source_file
     }
 }
 

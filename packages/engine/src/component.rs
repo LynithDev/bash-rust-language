@@ -1,9 +1,11 @@
-use std::iter::Peekable;
+use std::{fmt::Display, iter::Peekable};
 
-use crate::error::ErrorList;
+use crate::error::SourceFile;
 
-pub trait ComponentErrors {
-    fn fetch_errors(&self) -> &ErrorList;
+pub trait ComponentErrors<E>
+where E: Display {
+
+    fn fetch_errors(&self) -> &Vec<E>;
 
     fn has_errors(&self) -> bool {
         !self.fetch_errors().is_empty()
@@ -15,22 +17,7 @@ pub trait ComponentErrors {
         }
     }
 
-    #[cfg(feature = "cli")]
-    fn source(&self) -> &crate::error::SourceFile;
-
-    #[cfg(feature = "cli")]
-    fn get_source_sliced(&self, start: crate::cursor::Cursor, end: crate::cursor::Cursor) -> crate::error::SourceFile {
-        let source_file = self.source();
-
-        let start_index = start.index() as usize;
-        let end_index = end.index() as usize;
-
-        let code = &source_file.as_ref().1;
-
-        let source = &code[start_index..end_index.min(code.len())];
-
-        Box::from((source_file.as_ref().0.clone(), source.to_string()))
-    }
+    fn source(&self) -> &SourceFile;
 }
 
 pub trait ComponentIter<'a, C, T, I> where 

@@ -2,10 +2,9 @@ use std::fmt::Display;
 
 use lang_macro::EnumVariantsTrait;
 
-use crate::{
-    error::{EngineErrorKind, EngineResult},
-    cursor::Cursor,
-};
+use crate::cursor::Cursor;
+
+use super::{error::LexerResult, LexerErrorKind};
 
 #[repr(u8)]
 #[derive(lang_macro::EnumVariants, Debug, PartialEq, Eq, Clone)]
@@ -182,51 +181,51 @@ pub struct LexerToken {
 }
 
 impl LexerToken {
-    pub fn as_identifier(&self) -> EngineResult<&String> {
+    pub fn as_identifier(&self) -> LexerResult<&String> {
         self.value
             .as_ref()
             .and_then(|v| v.as_identifier())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
+            .ok_or(LexerErrorKind::LiteralExtractionError(
                 LexerTokenKind::Identifier, 
                 self.kind.clone(),
             ))
     }
 
-    pub fn as_string(&self) -> EngineResult<&String> {
+    pub fn as_string(&self) -> LexerResult<&String> {
         self.value
             .as_ref()
             .and_then(|v| v.as_string())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
+            .ok_or(LexerErrorKind::LiteralExtractionError(
                 LexerTokenKind::String,
                 self.kind.clone(),
             ))
     }
 
-    pub fn as_integer(&self) -> EngineResult<&isize> {
+    pub fn as_integer(&self) -> LexerResult<&isize> {
         self.value
             .as_ref()
             .and_then(|v| v.as_integer())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
+            .ok_or(LexerErrorKind::LiteralExtractionError(
                 LexerTokenKind::Integer,
                 self.kind.clone(),
             ))
     }
 
-    pub fn as_boolean(&self) -> EngineResult<&bool> {
+    pub fn as_boolean(&self) -> LexerResult<&bool> {
         self.value
             .as_ref()
             .and_then(|v| v.as_boolean())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
+            .ok_or(LexerErrorKind::LiteralExtractionError(
                 LexerTokenKind::Boolean,
                 self.kind.clone(),
             ))
     }
 
-    pub fn as_shell_command(&self) -> EngineResult<&ShellCommand> {
+    pub fn as_shell_command(&self) -> LexerResult<&ShellCommand> {
         self.value
             .as_ref()
             .and_then(|v| v.as_shell_command())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
+            .ok_or(LexerErrorKind::LiteralExtractionError(
                 LexerTokenKind::ShellCommand,
                 self.kind.clone(),
             ))
