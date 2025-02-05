@@ -1,9 +1,9 @@
 use crate::{lexer::tokens::LexerToken, parser::ParserErrorKind};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IdentifierLiteral(String);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Identifier(String);
 
-impl TryFrom<LexerToken> for IdentifierLiteral {
+impl TryFrom<LexerToken> for Identifier {
     type Error = ParserErrorKind;
     
     fn try_from(value: LexerToken) -> Result<Self, Self::Error> {

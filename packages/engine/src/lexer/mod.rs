@@ -1,7 +1,7 @@
 use std::{iter::Peekable, str::Chars};
 
 use error::LexerResult;
-use tokens::{LexerLiteral, LexerToken, LexerTokenKind, LexerTokenList};
+use tokens::{LexerTokenValue, LexerToken, LexerTokenKind, LexerTokenList};
 
 use crate::{
     component::{ComponentErrors, ComponentIter}, constants::{MAX_I32_LEN, MAX_I64_LEN}, cursor::Cursor, error::{EngineErrorKind, ErrorList}, parser::expr::ShellCommand
@@ -93,7 +93,7 @@ impl<'a> Lexer<'a> {
     fn scan_char(
         &mut self,
         char: &char,
-    ) -> LexerResult<Option<(LexerTokenKind, Option<Box<LexerLiteral>>)>> {
+    ) -> LexerResult<Option<(LexerTokenKind, Option<Box<LexerTokenValue>>)>> {
         macro_rules! check_double {
             ($single_type:expr, $double:tt, $double_type:expr) => {
                 if self.next_if_eq(&$double).is_some() {
@@ -142,7 +142,7 @@ impl<'a> Lexer<'a> {
                             return Ok(None);
                         };
 
-                        return Ok(Some((Integer, Some(Box::from(LexerLiteral::Integer(-self.eat_number(char)?))))));
+                        return Ok(Some((Integer, Some(Box::from(LexerTokenValue::Integer(-self.eat_number(char)?))))));
                     }
                     _ => Minus,
                 },
@@ -187,7 +187,7 @@ impl<'a> Lexer<'a> {
                 '0'..='9' => {
                     return Ok(Some((
                         Integer,
-                        Some(Box::from(LexerLiteral::Integer(self.eat_number(*char)?))),
+                        Some(Box::from(LexerTokenValue::Integer(self.eat_number(*char)?))),
                     )))
                 }
                 '"' => return Ok(Some(self.consume_string()?)),
@@ -219,10 +219,10 @@ impl<'a> Lexer<'a> {
                         "and" => And,
                         "or" => Or,
 
-                        "true" => return Ok(Some((Boolean, Some(Box::from(LexerLiteral::Boolean(true)))))),
-                        "false" => return Ok(Some((Boolean, Some(Box::from(LexerLiteral::Boolean(false)))))),
+                        "true" => return Ok(Some((Boolean, Some(Box::from(LexerTokenValue::Boolean(true)))))),
+                        "false" => return Ok(Some((Boolean, Some(Box::from(LexerTokenValue::Boolean(false)))))),
 
-                        _ if Self::is_valid_identifier(char) => return Ok(Some((Identifier, Some(Box::from(LexerLiteral::Identifier(Box::from(word))))))),
+                        _ if Self::is_valid_identifier(char) => return Ok(Some((Identifier, Some(Box::from(LexerTokenValue::Identifier(Box::from(word))))))),
                         _ => return Err(LexerErrorKind::UnknownToken),
                     }
                 }
@@ -234,7 +234,7 @@ impl<'a> Lexer<'a> {
     fn add_token(
         &mut self,
         token_type: LexerTokenKind,
-        value: Option<Box<LexerLiteral>>,
+        value: Option<Box<LexerTokenValue>>,
         start: Cursor,
     ) {
         self.tokens.push(LexerToken {
@@ -279,7 +279,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Attempts to return a [`TokenType::String`]
-    fn consume_string(&mut self) -> LexerResult<(LexerTokenKind, Option<Box<LexerLiteral>>)> {
+    fn consume_string(&mut self) -> LexerResult<(LexerTokenKind, Option<Box<LexerTokenValue>>)> {
         let string = self.eat_until(&['"', '\n'], true).unwrap_or_default();
         
         if let Err(err) = self.expect_char(&'"') {
@@ -292,14 +292,14 @@ impl<'a> Lexer<'a> {
     
         Ok((
             LexerTokenKind::String,
-            Some(Box::from(LexerLiteral::String(Box::from(string)))),
+            Some(Box::from(LexerTokenValue::String(Box::from(string)))),
         ))
     }
 
     /// Attempts to return a [`TokenType::ShellCommand`]
     fn consume_shell_command(
         &mut self,
-    ) -> LexerResult<(LexerTokenKind, Option<Box<LexerLiteral>>)> {
+    ) -> LexerResult<(LexerTokenKind, Option<Box<LexerTokenValue>>)> {
         let cmd_name = self
             .eat_until(&[' ', '\t', '\n', '('], false)
             .ok_or(LexerErrorKind::UnexpectedEnd)?;
@@ -323,7 +323,7 @@ impl<'a> Lexer<'a> {
 
         Ok((
             LexerTokenKind::ShellCommand,
-            Some(Box::from(LexerLiteral::ShellCommand(Box::from(ShellCommand(cmd_name, cmd_args))))),
+            Some(Box::from(LexerTokenValue::ShellCommand(Box::from(ShellCommand(cmd_name, cmd_args))))),
         ))
     }
 

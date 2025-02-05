@@ -121,7 +121,7 @@ impl Display for LexerTokenKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum LexerLiteral {
+pub enum LexerTokenValue {
     Identifier(Box<String>),
     /// `"..."`
     String(Box<String>),
@@ -133,40 +133,25 @@ pub enum LexerLiteral {
     ShellCommand(Box<ShellCommand>),
 }
 
-impl LexerLiteral {
+impl LexerTokenValue {
     pub fn as_identifier(&self) -> Option<&String> {
-        match self {
-            Self::Identifier(identifier) => Some(identifier),
-            _ => None,
-        }
+        self.try_into().ok()
     }
 
     pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(string) => Some(string),
-            _ => None,
-        }
+        self.try_into().ok()
     }
 
     pub fn as_integer(&self) -> Option<&isize> {
-        match self {
-            Self::Integer(int) => Some(int),
-            _ => None,
-        }
+        self.try_into().ok()
     }
 
     pub fn as_boolean(&self) -> Option<&bool> {
-        match self {
-            Self::Boolean(bool) => Some(bool),
-            _ => None,
-        }
+        self.try_into().ok()
     }
 
     pub fn as_shell_command(&self) -> Option<&ShellCommand> {
-        match self {
-            Self::ShellCommand(cmd) => Some(cmd),
-            _ => None,
-        }
+        self.try_into().ok()
     }
 }
 
@@ -175,58 +160,41 @@ pub struct LexerToken {
     pub kind: LexerTokenKind,
     pub start: Cursor,
     pub end: Cursor,
-    pub value: Option<Box<LexerLiteral>>,
+    pub value: Option<Box<LexerTokenValue>>,
+}
+
+macro_rules! as_value {
+    ($self:expr, $token:expr, |$v:ident| => $exp:expr) => {
+        $self.value
+            .as_ref()
+            .and_then(|$v| $exp)
+            .ok_or(EngineErrorKind::LiteralExtractionError(
+                $token, 
+                $self.kind.clone(),
+            ))
+    };
 }
 
 impl LexerToken {
+
     pub fn as_identifier(&self) -> EngineResult<&String> {
-        self.value
-            .as_ref()
-            .and_then(|v| v.as_identifier())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
-                LexerTokenKind::Identifier, 
-                self.kind.clone(),
-            ))
+        as_value!(self, LexerTokenKind::Identifier, |v| => v.as_identifier())
     }
 
     pub fn as_string(&self) -> EngineResult<&String> {
-        self.value
-            .as_ref()
-            .and_then(|v| v.as_string())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
-                LexerTokenKind::String,
-                self.kind.clone(),
-            ))
+        as_value!(self, LexerTokenKind::String, |v| => v.as_string())
     }
 
     pub fn as_integer(&self) -> EngineResult<&isize> {
-        self.value
-            .as_ref()
-            .and_then(|v| v.as_integer())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
-                LexerTokenKind::Integer,
-                self.kind.clone(),
-            ))
+        as_value!(self, LexerTokenKind::Identifier, |v| => v.as_identifier())
     }
 
     pub fn as_boolean(&self) -> EngineResult<&bool> {
-        self.value
-            .as_ref()
-            .and_then(|v| v.as_boolean())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
-                LexerTokenKind::Boolean,
-                self.kind.clone(),
-            ))
+        as_value!(self, LexerTokenKind::Boolean, |v| => v.as_boolean())
     }
 
     pub fn as_shell_command(&self) -> EngineResult<&ShellCommand> {
-        self.value
-            .as_ref()
-            .and_then(|v| v.as_shell_command())
-            .ok_or(EngineErrorKind::LiteralExtractionError(
-                LexerTokenKind::ShellCommand,
-                self.kind.clone(),
-            ))
+        as_value!(self, LexerTokenKind::ShellCommand, |v| => v.as_shell_command())
     }
 }
 

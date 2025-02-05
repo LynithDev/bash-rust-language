@@ -41,7 +41,7 @@ macro_rules! custom_assert {
 }
 
 mod basic_syntax {
-    use lang_engine::lexer::tokens::{LexerLiteral, LexerToken, LexerTokenKind};
+    use lang_engine::lexer::tokens::{LexerTokenValue, LexerToken, LexerTokenKind};
 
     token_list_comparison!(
         single_line_comment,
@@ -73,7 +73,7 @@ mod basic_syntax {
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test"))))),
                 start: Cursor::from(5, 8),
                 end: Cursor::from(5, 12),
                 kind: LexerTokenKind::Identifier
@@ -85,7 +85,7 @@ mod basic_syntax {
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(50))),
+                value: Some(Box::from(LexerTokenValue::Integer(50))),
                 start: Cursor::from(5, 15),
                 end: Cursor::from(5, 17),
                 kind: LexerTokenKind::Integer
@@ -110,7 +110,7 @@ mod basic_syntax {
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test"))))),
                 start: Cursor::from(1, 5),
                 end: Cursor::from(1, 9),
                 kind: LexerTokenKind::Identifier
@@ -122,7 +122,7 @@ mod basic_syntax {
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(50))),
+                value: Some(Box::from(LexerTokenValue::Integer(50))),
                 start: Cursor::from(1, 12),
                 end: Cursor::from(1, 14),
                 kind: LexerTokenKind::Integer
@@ -152,7 +152,7 @@ var my_str = \"hello world\"
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test"))))),
                 start: Cursor::from(1, 5),
                 end: Cursor::from(1, 9),
                 kind: LexerTokenKind::Identifier
@@ -164,7 +164,7 @@ var my_str = \"hello world\"
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(50))),
+                value: Some(Box::from(LexerTokenValue::Integer(50))),
                 start: Cursor::from(1, 12),
                 end: Cursor::from(1, 14),
                 kind: LexerTokenKind::Integer
@@ -182,7 +182,7 @@ var my_str = \"hello world\"
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("my_str"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("my_str"))))),
                 start: Cursor::from(2, 5),
                 end: Cursor::from(2, 11),
                 kind: LexerTokenKind::Identifier
@@ -194,7 +194,7 @@ var my_str = \"hello world\"
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::String(Box::from(String::from("hello world"))))),
+                value: Some(Box::from(LexerTokenValue::String(Box::from(String::from("hello world"))))),
                 start: Cursor::from(2, 14),
                 end: Cursor::from(2, 27),
                 kind: LexerTokenKind::String
@@ -226,7 +226,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test1"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test1"))))),
                 start: Cursor::from(1, 5),
                 end: Cursor::from(1, 10),
                 kind: LexerTokenKind::Identifier
@@ -238,7 +238,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::ShellCommand(Box::from((String::from("echo"), Some(String::from("hello world"))))))),
+                value: Some(Box::from(LexerTokenValue::ShellCommand(Box::from((String::from("echo"), Some(String::from("hello world"))))))),
                 start: Cursor::from(1, 13),
                 end: Cursor::from(1, 30),
                 kind: LexerTokenKind::ShellCommand
@@ -256,7 +256,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test2"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test2"))))),
                 start: Cursor::from(2, 5),
                 end: Cursor::from(2, 10),
                 kind: LexerTokenKind::Identifier
@@ -268,7 +268,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::ShellCommand(Box::from((String::from("echo"), Some(String::from("hello world"))))))),
+                value: Some(Box::from(LexerTokenValue::ShellCommand(Box::from((String::from("echo"), Some(String::from("hello world"))))))),
                 start: Cursor::from(2, 13),
                 end: Cursor::from(2, 31),
                 kind: LexerTokenKind::ShellCommand
@@ -286,7 +286,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test3"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test3"))))),
                 start: Cursor::from(3, 5),
                 end: Cursor::from(3, 10),
                 kind: LexerTokenKind::Identifier
@@ -298,7 +298,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::ShellCommand(Box::from((String::from("echo"), Some(String::from("\"hello world\""))))))),
+                value: Some(Box::from(LexerTokenValue::ShellCommand(Box::from((String::from("echo"), Some(String::from("\"hello world\""))))))),
                 start: Cursor::from(3, 13),
                 end: Cursor::from(3, 33),
                 kind: LexerTokenKind::ShellCommand
@@ -310,7 +310,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Plus
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::String(Box::from(String::from("lol"))))),
+                value: Some(Box::from(LexerTokenValue::String(Box::from(String::from("lol"))))),
                 start: Cursor::from(3, 36),
                 end: Cursor::from(3, 41),
                 kind: LexerTokenKind::String
@@ -328,7 +328,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Var
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Identifier(Box::from(String::from("test4"))))),
+                value: Some(Box::from(LexerTokenValue::Identifier(Box::from(String::from("test4"))))),
                 start: Cursor::from(4, 5),
                 end: Cursor::from(4, 10),
                 kind: LexerTokenKind::Identifier
@@ -340,7 +340,7 @@ var test4 = $echo hello world + \"lol\"
                 kind: LexerTokenKind::Equal
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::ShellCommand(Box::from((String::from("echo"), Some(String::from("hello world + \"lol\""))))))),
+                value: Some(Box::from(LexerTokenValue::ShellCommand(Box::from((String::from("echo"), Some(String::from("hello world + \"lol\""))))))),
                 start: Cursor::from(4, 13),
                 end: Cursor::from(4, 38),
                 kind: LexerTokenKind::ShellCommand
@@ -356,14 +356,14 @@ var test4 = $echo hello world + \"lol\"
 }
 
 mod integer_parsing {
-    use lang_engine::lexer::tokens::{LexerLiteral, LexerToken, LexerTokenKind};
+    use lang_engine::lexer::tokens::{LexerTokenValue, LexerToken, LexerTokenKind};
 
     token_list_comparison!(
         integer_parsing,
         "51",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(51))),
+                value: Some(Box::from(LexerTokenValue::Integer(51))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 3),
                 kind: LexerTokenKind::Integer
@@ -382,7 +382,7 @@ mod integer_parsing {
         "-51",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(-51))),
+                value: Some(Box::from(LexerTokenValue::Integer(-51))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 4),
                 kind: LexerTokenKind::Integer
@@ -401,7 +401,7 @@ mod integer_parsing {
         "0b110_110",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(54))),
+                value: Some(Box::from(LexerTokenValue::Integer(54))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 10),
                 kind: LexerTokenKind::Integer
@@ -420,7 +420,7 @@ mod integer_parsing {
         "0xff",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(255))),
+                value: Some(Box::from(LexerTokenValue::Integer(255))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 5),
                 kind: LexerTokenKind::Integer
@@ -439,7 +439,7 @@ mod integer_parsing {
         "-0xff",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(-255))),
+                value: Some(Box::from(LexerTokenValue::Integer(-255))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 6),
                 kind: LexerTokenKind::Integer
@@ -458,7 +458,7 @@ mod integer_parsing {
         "0o14",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(12))),
+                value: Some(Box::from(LexerTokenValue::Integer(12))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 5),
                 kind: LexerTokenKind::Integer
@@ -477,7 +477,7 @@ mod integer_parsing {
         "0d12",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(12))),
+                value: Some(Box::from(LexerTokenValue::Integer(12))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 5),
                 kind: LexerTokenKind::Integer
@@ -499,7 +499,7 @@ mod integer_parsing {
     ",
         [
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(9_223_372_036_854_775_807))),
+                value: Some(Box::from(LexerTokenValue::Integer(9_223_372_036_854_775_807))),
                 start: Cursor::from(1, 1),
                 end: Cursor::from(1, 26),
                 kind: LexerTokenKind::Integer
@@ -511,7 +511,7 @@ mod integer_parsing {
                 kind: LexerTokenKind::EOL
             },
             LexerToken {
-                value: Some(Box::from(LexerLiteral::Integer(-9_223_372_036_854_775_807))),
+                value: Some(Box::from(LexerTokenValue::Integer(-9_223_372_036_854_775_807))),
                 start: Cursor::from(2, 1),
                 end: Cursor::from(2, 27),
                 kind: LexerTokenKind::Integer
