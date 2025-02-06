@@ -33,7 +33,7 @@ pub enum StatementKind {
     Expression(ExpressionStmt),
     Continue(Continue),
     Break(Break),
-    Variable(VariableMeta),
+    Variable(Variable),
     Function(Function),
     Include(Include),
 }
@@ -42,4 +42,3 @@ pub enum StatementKind {
 pub struct Statement {
     kind: Box<StatementKind>,
 }
-

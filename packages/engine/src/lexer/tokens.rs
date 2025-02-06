@@ -135,23 +135,38 @@ pub enum LexerTokenValue {
 
 impl LexerTokenValue {
     pub fn as_identifier(&self) -> Option<&String> {
-        self.try_into().ok()
+        match self {
+            Self::Identifier(identifier) => Some(identifier),
+            _ => None,
+        }
     }
 
     pub fn as_string(&self) -> Option<&String> {
-        self.try_into().ok()
+        match self {
+            Self::String(string) => Some(string),
+            _ => None,
+        }
     }
 
     pub fn as_integer(&self) -> Option<&isize> {
-        self.try_into().ok()
+        match self {
+            Self::Integer(int) => Some(int),
+            _ => None,
+        }
     }
 
     pub fn as_boolean(&self) -> Option<&bool> {
-        self.try_into().ok()
+        match self {
+            Self::Boolean(bool) => Some(bool),
+            _ => None,
+        }
     }
 
     pub fn as_shell_command(&self) -> Option<&ShellCommand> {
-        self.try_into().ok()
+        match self {
+            Self::ShellCommand(cmd) => Some(cmd),
+            _ => None,
+        }
     }
 }
 
@@ -186,7 +201,7 @@ impl LexerToken {
     }
 
     pub fn as_integer(&self) -> EngineResult<&isize> {
-        as_value!(self, LexerTokenKind::Identifier, |v| => v.as_identifier())
+        as_value!(self, LexerTokenKind::Identifier, |v| => v.as_integer())
     }
 
     pub fn as_boolean(&self) -> EngineResult<&bool> {

@@ -1,38 +1,37 @@
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{ast::Parse, expr::Literal, ParserErrorKind}};
+use crate::{as_expr, ast, lexer::tokens::LexerTokenKind, parseable, parser::{expr::Identifier, ParserErrorKind}};
 
-use super::{Expression, ExpressionKind};
+use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Assignment(pub Expression, pub AssignmentOperator, pub Expression);
+ast!(Assignment(Expression, AssignmentOperator, Expression));
+as_expr!(Assignment);
 
-impl Parse<ExpressionKind> for Assignment {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<ExpressionKind> {
+parseable! {
+    Assignment = |parser| {
         let lhs = parser.expr_logic_or()?;
 
-        if let Some(op_token) = parser.next_if_eq_mul(&[
+        let Some(op_token) = parser.next_if_eq_mul(&[
             &LexerTokenKind::Equal,
             &LexerTokenKind::PlusEqual,
             &LexerTokenKind::MinusEqual,
             &LexerTokenKind::MultiplyEqual,
             &LexerTokenKind::DivideEqual,
-        ]) {
-            let rhs = parser.expr_logic_or()?;
+        ]) else {
+            return Ok(None);
+        };
 
-            if let ExpressionKind::Literal(Literal::Identifier(identifier)) = lhs
-            {
-                let operator: AssignmentOperator = op_token.kind.clone().try_into()?;
+        let rhs = parser.expr_logic_or()?;
 
-                return Ok(
-                    ExpressionKind::Assignment(Assignment(
-                        lhs,
-                        operator,
-                        rhs,
-                    )),
-                );
-            }
-        }
+        let ExpressionKind::Identifier(Identifier(identifier)) = lhs else {
+            return Ok(None);
+        };
 
-        Ok(lhs)
+        let operator: AssignmentOperator = op_token.kind.clone().try_into()?;
+
+        Ok(Some(Assignment(
+            lhs,
+            operator,
+            rhs,
+        )))
     }
 }
 

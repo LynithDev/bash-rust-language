@@ -1,18 +1,17 @@
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{ast::Parse, ParserErrorKind}};
+use crate::{as_expr, ast, parse, parseable};
 
-use super::{else_expr::ElseExpr, Block, Expression, ExpressionKind};
+use super::{Block, Expression};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IfExpr(pub Expression, pub Block, pub Option<ElseExpr>);
+ast!(IfExpr(Expression, Block, Option<Expression>));
+as_expr!(IfExpr = If);
 
-impl Parse<ExpressionKind> for IfExpr {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<ExpressionKind> {
+parseable! {
+    IfExpr = |parser| {
         let condition = parser.expression()?;
 
-        let start = parser.cursor;
-
         let truthy_block = if parser.next_if_eq(&&LexerTokenKind::LBracket).is_some() {
-            parser.stmt_block()?
+            parse!(parser, expr = Block);
+            expr
         } 
         // TODO:
         // else if parser.next_if_eq(&&LexerTokenKind::Colon).is_some() {
@@ -28,21 +27,22 @@ impl Parse<ExpressionKind> for IfExpr {
             Some(match parser.peek().map(|t| t.kind.clone()) {
                 Some(LexerTokenKind::LBracket) => {
                     parser.next();
-                    parser.stmt_block()?
+                    Block::parse(parser)?
                 }
                 // Some(LexerTokenKind::Colon) => {
                 //     parser.next();
                 //     parser.parse_inline_block()?
                 // }
                 _ => {
-                    let stmt = parser.stmt_if()?;
-                    vec![stmt]
+                    todo!("if else parsing");
+                    // let stmt = IfStmt::parse(parser)?;
+                    // vec![stmt]
                 }
             })
         } else {
             None
         };
 
-        Ok(ExpressionKind::If((condition, truthy_block, else_condition)))
+        Ok(Some(IfExpr(condition, truthy_block, None)))
     }
 }

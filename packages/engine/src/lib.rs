@@ -11,7 +11,6 @@ use component::ComponentErrors;
 use error::EngineResult;
 use lexer::Lexer;
 use parser::Parser;
-use transpiler::Transpiler;
 
 pub mod component;
 pub mod constants;
@@ -76,8 +75,8 @@ impl Engine {
         parser.parse();
         parser.print_errors();
 
-        let mut transpiler = Transpiler::create(&transpiler::TranspilerTarget::Bash, parser.parse());
-        println!("---START---\n{}\n---END---", transpiler.transpile());
+        // let mut transpiler = Transpiler::create(&transpiler::TranspilerTarget::Bash, parser.parse());
+        // println!("---START---\n{}\n---END---", transpiler.transpile());
 
 
         Ok(0)

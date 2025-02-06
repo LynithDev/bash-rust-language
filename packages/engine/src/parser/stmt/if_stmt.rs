@@ -1,16 +1,14 @@
-use crate::{lexer::tokens::LexerTokenKind, parser::{ast::Parse, expr::IfExpr}};
+use crate::{parse, ast, as_stmt, parseable, parser::expr::IfExpr};
 
-use super::StatementKind;
+ast!(IfStmt(IfExpr));
+as_stmt!(IfStmt = If);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IfStmt(IfExpr);
-
-impl Parse<StatementKind> for IfStmt {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<StatementKind> {
+parseable! {
+    IfStmt = |parser| {
         parser.expect_token(&LexerTokenKind::If)?;
 
-        let expr = parser.expr_if()?;
+        parse!(parser, expr = IfExpr);
 
-        Ok(StatementKind::If(expr))
+        Ok(Some(IfStmt(expr)))
     }
 }

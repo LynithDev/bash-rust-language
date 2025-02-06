@@ -1,9 +1,8 @@
 mod literal;
-mod binary;
+mod bin_op;
 mod arithmetic_expr;
 mod assignment_expr;
 mod block_expr;
-mod else_expr;
 mod function_call_expr;
 mod group_expr;
 mod if_expr;
@@ -16,7 +15,6 @@ mod identifier;
 pub use identifier::Identifier;
 use literal::{boolean::BooleanLiteral, integer::IntegerLiteral, string::StringLiteral};
 pub use literal::Literal;
-pub use binary::Binary;
 pub use arithmetic_expr::Arithmetic;
 pub use assignment_expr::Assignment;
 pub use block_expr::Block;
@@ -39,7 +37,6 @@ pub enum ExpressionKind {
     Group(Group),
     Unary(Unary),
     Arithmetic(Arithmetic),
-    Binary(Binary),
     Assignment(Assignment),
     Range(Range),
     ShellCommand(ShellCommand),

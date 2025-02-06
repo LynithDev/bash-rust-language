@@ -1,16 +1,14 @@
-use crate::{lexer::tokens::LexerTokenKind, parser::{ast::Parse, expr::MatchExpr}};
+use crate::{as_stmt, ast, parse, parseable, parser::expr::MatchExpr};
 
-use super::StatementKind;
+ast!(MatchStmt(MatchExpr));
+as_stmt!(MatchStmt = Match);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MatchStmt(MatchExpr);
-
-impl Parse<StatementKind> for MatchStmt {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<StatementKind> {
+parseable! {
+    MatchStmt = |parser| {
         parser.expect_token(&LexerTokenKind::Match)?;
 
-        let expr = parser.expr_match()?;
+        parse!(parser, expr = MatchExpr);
 
-        Ok(StatementKind::Match(expr))
+        Ok(Some(MatchStmt(expr)))
     }
 }

@@ -1,29 +1,26 @@
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{ast::Parse, expr::Expression, Parser, ParserResult}};
+use crate::{as_stmt, ast, parse, parseable, parser::expr::Expression};
 
-use super::StatementKind;
+ast!(Variable(VariableMeta));
+as_stmt!(Variable);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Variable(pub VariableMeta);
-
-impl Parse<StatementKind> for Variable {
-    fn parse(parser: &mut Parser) -> ParserResult<StatementKind> {
+parseable! {
+    Variable = |parser| {
         parser.expect_token(&LexerTokenKind::Var)?;
-        let value = VariableMeta::parse(parser)?;
+        parse!(parser, value = VariableMeta);
         parser.expect_terminator()?;
 
-        Ok(StatementKind::Variable(value))
+        Ok(Some(Variable(value)))
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VariableMeta {
-    pub name: String,
-    pub strict_type: Option<String>,
-    pub value: Option<Expression>,
-}
+ast!(VariableMeta {
+    name: String,
+    strict_type: Option<String>,
+    value: Option<Expression>
+});
 
-impl Parse<VariableMeta> for VariableMeta {
-    fn parse(parser: &mut Parser) -> ParserResult<VariableMeta> {
+parseable! {
+    VariableMeta = |parser| {
         let identifier = parser
             .expect_token(&LexerTokenKind::Identifier)?
             .as_identifier()?
@@ -37,10 +34,10 @@ impl Parse<VariableMeta> for VariableMeta {
             None
         };
 
-        Ok(VariableMeta {
+        Ok(Some(VariableMeta {
             name: identifier.to_owned(),
             strict_type,
             value,
-        })
+        }))
     }
 }

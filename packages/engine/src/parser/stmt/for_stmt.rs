@@ -1,12 +1,12 @@
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{ast::Parse, expr::{Block, Expression}}};
+use crate::{as_stmt, ast, parse, parseable, parser::expr::{Block, Expression}};
 
-use super::{variable_stmt::VariableMeta, StatementKind};
+use super::variable_stmt::VariableMeta;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct For(VariableMeta, Expression, Block);
+ast!(For(VariableMeta, Expression, Block));
+as_stmt!(For);
 
-impl Parse<StatementKind> for For {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<StatementKind> {
+parseable! {
+    For = |parser| {
         parser.expect_token(&LexerTokenKind::For)?;
 
         let identifier = parser
@@ -23,8 +23,8 @@ impl Parse<StatementKind> for For {
         let expr = parser.expression()?;
         parser.next();
 
-        let block = parser.stmt_block()?;
+        parse!(parser, block = Block);
 
-        Ok(StatementKind::For((variable, expr, block)))
+        Ok(Some(For(variable, expr, block)))
     }
 }

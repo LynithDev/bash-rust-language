@@ -1,17 +1,17 @@
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{ast::Parse, expr::Block}};
+use crate::{as_stmt, ast, parse, parseable, parser::expr::Block};
 
-use super::{variable_stmt::VariableMeta, StatementKind};
+use super::variable_stmt::VariableMeta;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Function {
-    pub name: String,
-    pub parameters: Option<Vec<VariableMeta>>,
-    pub strict_type: Option<String>,
-    pub body: Block,
-}
+ast!(Function {
+    name: String,
+    parameters: Option<Vec<VariableMeta>>,
+    strict_type: Option<String>,
+    body: Block,
+});
+as_stmt!(Function);
 
-impl Parse<StatementKind> for Function {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<StatementKind> {
+parseable! {
+    Function = |parser| {
         parser.expect_token(&LexerTokenKind::Function)?;
 
         let identifier = parser
@@ -33,7 +33,8 @@ impl Parse<StatementKind> for Function {
                     continue;
                 }
 
-                variables.push(VariableMeta::parse(parser)?);
+                parse!(parser, var = VariableMeta);
+                variables.push(var);
             }
 
             parser.next();
@@ -47,15 +48,13 @@ impl Parse<StatementKind> for Function {
 
         parser.expect_token(&LexerTokenKind::LBracket)?;
 
-        let body = parser.stmt_block()?;
+        parse!(parser, body = Block);
 
-        let function = Function {
+        Ok(Some(Function {
             name: identifier.to_owned(),
             parameters,
             strict_type,
             body,
-        };
-
-        Ok(StatementKind::Function(function))
+        }))
     }
 }

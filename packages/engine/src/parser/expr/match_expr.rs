@@ -1,16 +1,14 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::ast::Parse};
+use crate::{as_expr, ast, parseable};
 
-use super::{literal::Literal, Expression, ExpressionKind};
+use super::{literal::Literal, Expression};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MatchExpr(pub Expression, pub HashMap<Literal, Rc<Expression>>);
+ast!(MatchExpr(Expression, HashMap<Literal, Rc<Expression>>));
+as_expr!(MatchExpr = Match);
 
-impl Parse<ExpressionKind> for MatchExpr {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<ExpressionKind> {
-        let start = parser.cursor;
-
+parseable! {
+    MatchExpr = |parser| {
         let pattern = parser.expression()?;
 
         parser.expect_token(&LexerTokenKind::LBracket)?;
@@ -53,6 +51,6 @@ impl Parse<ExpressionKind> for MatchExpr {
             parser.next();
         }
 
-        Ok(ExpressionKind::Match((pattern, hash_map)))
+        Ok(Some(MatchExpr(pattern, hash_map)))
     }
 }

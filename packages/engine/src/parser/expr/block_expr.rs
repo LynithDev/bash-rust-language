@@ -1,12 +1,10 @@
-use crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{ast::Parse, stmt::Statement}};
+use crate::{as_expr, ast, parseable, parser::stmt::Statement};
 
-use super::ExpressionKind;
+ast!(Block(Vec<Statement>)); 
+as_expr!(Block);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block(pub Vec<Statement>);
-
-impl Parse<ExpressionKind> for Block {
-    fn parse(parser: &mut crate::parser::Parser) -> crate::parser::ParserResult<ExpressionKind> {
+parseable! {
+    Block = |parser| {
         parser.expect_terminator()?;
 
         let mut statements = vec![];
@@ -23,6 +21,6 @@ impl Parse<ExpressionKind> for Block {
             parser.next();
         }
 
-        Ok(ExpressionKind::Block(Block(statements)))
+        Ok(Some(Block(statements)))
     }
 }
