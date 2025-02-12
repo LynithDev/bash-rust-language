@@ -1,7 +1,13 @@
-use crate::{to_expr_kind, ast, lexer::tokens::LexerToken, parser::ParserErrorKind};
+use crate::{ast, lexer::tokens::LexerToken, parseable, parser::ParserErrorKind, to_expr_kind};
 
 ast!(Identifier(String));
 to_expr_kind!(Identifier);
+
+parseable!(
+    Identifier = |parser| {
+        parser.exp
+    }
+)
 
 impl TryFrom<LexerToken> for Identifier {
     type Error = ParserErrorKind;

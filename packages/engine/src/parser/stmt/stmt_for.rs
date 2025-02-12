@@ -1,6 +1,6 @@
-use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::{Block, Expression}};
+use crate::{as_stmt_kind, ast, ok_or_none, parseable, parser::expr::{Block, Expression}};
 
-use super::variable_stmt::VariableMeta;
+use super::VariableMeta;
 
 ast!(For(VariableMeta, Expression, Block));
 as_stmt_kind!(For);
@@ -12,6 +12,7 @@ parseable! {
         let identifier = parser
             .expect_token(&LexerTokenKind::Identifier)?
             .as_identifier()?;
+        
         let variable = VariableMeta {
             name: identifier.clone(),
             strict_type: None,
@@ -19,11 +20,12 @@ parseable! {
         };
 
         parser.expect_token(&LexerTokenKind::In)?;
-        // let_expr!(expr = parser.expression()?);
-        let expr = parser.expression()?;
+
+        let expr = ok_or_none!(parser.expression()?);
+
         parser.next();
 
-        parse!(parser, block = Block);
+        let block = ok_or_none!(Block::parse(parser)?);
 
         Ok(Some(For(variable, expr, block)))
     }

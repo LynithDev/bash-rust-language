@@ -1,32 +1,32 @@
 mod literal;
 mod bin_op;
-mod arithmetic_expr;
-mod assignment_expr;
-mod block_expr;
-mod function_call_expr;
-mod group_expr;
-mod if_expr;
-mod match_expr;
-mod range_expr;
-mod shell_command_expr;
-mod unary_expr;
-mod identifier;
+mod expr_arithmetic;
+mod expr_assignment;
+mod expr_block;
+mod expr_function_call;
+mod expr_group;
+mod expr_if;
+mod expr_match;
+mod expr_range;
+mod expr_shell_command;
+mod expr_unary;
+mod expr_identifier;
 
 use bin_op::and_op::And;
 pub use bin_op::or_op::Or;
-pub use identifier::Identifier;
+pub use expr_identifier::Identifier;
 pub use literal::{boolean::BooleanLiteral, integer::IntegerLiteral, string::StringLiteral};
 pub use literal::Literal;
-pub use arithmetic_expr::Arithmetic;
-pub use assignment_expr::Assignment;
-pub use block_expr::Block;
-pub use function_call_expr::FunctionCall;
-pub use group_expr::Group;
-pub use if_expr::IfExpr;
-pub use match_expr::MatchExpr;
-pub use range_expr::Range;
-pub use shell_command_expr::ShellCommand;
-pub use unary_expr::Unary;
+pub use expr_arithmetic::Arithmetic;
+pub use expr_assignment::Assignment;
+pub use expr_block::Block;
+pub use expr_function_call::FunctionCall;
+pub use expr_group::Group;
+pub use expr_if::IfExpr;
+pub use expr_match::MatchExpr;
+pub use expr_range::Range;
+pub use expr_shell_command::ShellCommand;
+pub use expr_unary::Unary;
 
 use crate::cursor::Cursor;
 
@@ -54,7 +54,17 @@ pub enum ExpressionKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expression {
-    start: Cursor,
-    end: Cursor,
-    kind: Box<ExpressionKind>,
+    pub start: Cursor,
+    pub kind: Box<ExpressionKind>,
+    pub end: Cursor,
+}
+
+impl Expression {
+    pub fn new(start: Cursor, kind: ExpressionKind, end: Cursor) -> Self {
+        Self {
+            start,
+            kind: Box::from(kind),
+            end,
+        }
+    }
 }

@@ -1,4 +1,4 @@
-use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::{Block, Expression}};
+use crate::{as_stmt_kind, ast, ok_or_none, parseable, parser::expr::{Block, Expression}};
 
 ast!(While(Expression, Block));
 as_stmt_kind!(While);
@@ -7,10 +7,11 @@ parseable! {
     While = |parser| {
         parser.expect_token(&LexerTokenKind::While)?;
 
-        let condition = parser.expression()?;
+        let condition = ok_or_none!(parser.expression()?);
+        
         parser.next();
 
-        parse!(parser, block = Block);
+        let block = ok_or_none!(Block::parse(parser)?);
 
         Ok(Some(While(condition, block)))
     }

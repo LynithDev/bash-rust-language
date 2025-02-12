@@ -1,4 +1,4 @@
-use crate::{to_expr_kind, ast, parseable};
+use crate::{ast, ok_or_none, parseable, to_expr_kind};
 
 use super::Expression;
 
@@ -7,12 +7,10 @@ to_expr_kind!(Group);
 
 parseable! {
     Group = |parser| {
-        let mut expr = parser.expression()?;
+        let expr = ok_or_none!(parser.expression()?);
 
         parser.expect_token(&LexerTokenKind::RParen)?;
 
-        expr.value = ExpressionKind::Group(expr.value);
-
-        Ok(expr)
+        Ok(Some(Group(expr)))
     }
 }

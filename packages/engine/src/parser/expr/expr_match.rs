@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{to_expr_kind, ast, parseable};
+use crate::{ast, ok_or_none, parseable, to_expr_kind};
 
 use super::{literal::Literal, Expression};
 
@@ -9,7 +9,7 @@ to_expr_kind!(MatchExpr = Match);
 
 parseable! {
     MatchExpr = |parser| {
-        let pattern = parser.expression()?;
+        let pattern = ok_or_none!(parser.expression()?);
 
         parser.expect_token(&LexerTokenKind::LBracket)?;
         parser.expect_terminator()?;
@@ -39,7 +39,7 @@ parseable! {
 
                 parser.expect_token(&LexerTokenKind::Arrow)?;
 
-                let value = parser.expression()?;
+                let value = ok_or_none!(parser.expression()?);
 
                 let rc = Rc::new(value);
 

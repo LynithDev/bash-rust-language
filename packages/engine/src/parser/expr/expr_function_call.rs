@@ -1,4 +1,4 @@
-use crate::{to_expr_kind, ast, parseable};
+use crate::{ast, ok_or_none, parseable, to_expr_kind};
 
 use super::{Expression, Identifier};
 
@@ -7,7 +7,7 @@ to_expr_kind!(FunctionCall);
 
 parseable! {
     FunctionCall = |parser| {
-        let expr = parser.expr_primary()?;
+        let expr = ok_or_none!(Identifier::);
 
         let ExpressionKind::Identifier(identifier) = &expr.value else {
             return Ok(None);

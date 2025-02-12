@@ -1,4 +1,4 @@
-use crate::{to_expr_kind, ast, parseable, parser::stmt::Statement};
+use crate::{ast, ok_or_none, parseable, parser::stmt::Statement, to_expr_kind};
 
 ast!(Block(Vec<Statement>)); 
 to_expr_kind!(Block);
@@ -15,7 +15,7 @@ parseable! {
                 break;
             }
 
-            let statement = parser.parse_statement(token)?;
+            let statement = ok_or_none!(parser.statement(token)?);
             statements.push(statement);
 
             parser.next();

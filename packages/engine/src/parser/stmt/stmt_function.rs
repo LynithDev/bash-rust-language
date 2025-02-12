@@ -1,6 +1,6 @@
-use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::Block};
+use crate::{as_stmt_kind, ast, ok_or_none, parseable, parser::expr::Block};
 
-use super::variable_stmt::VariableMeta;
+use super::stmt_variable::VariableMeta;
 
 ast!(Function {
     name: String,
@@ -33,7 +33,7 @@ parseable! {
                     continue;
                 }
 
-                parse!(parser, var = VariableMeta);
+                let var = ok_or_none!(VariableMeta::parse(parser)?);
                 variables.push(var);
             }
 
@@ -48,7 +48,7 @@ parseable! {
 
         parser.expect_token(&LexerTokenKind::LBracket)?;
 
-        parse!(parser, body = Block);
+        let body = ok_or_none!(Block::parse(parser)?);
 
         Ok(Some(Function {
             name: identifier.to_owned(),

@@ -1,4 +1,4 @@
-use crate::{to_expr_kind, ast, parse, parse_bin_op, parseable, parser::{ast::ToExpressionKind, expr::{bin_op::BinOp, Expression, Or}}};
+use crate::{ast, parse_bin_op, parse_expr, parseable, parser::expr::{Expression, Or}, to_expr_kind};
 
 ast!(And(Expression, Expression));
 to_expr_kind!(And);
@@ -17,28 +17,30 @@ parse_bin_op! {
 
 parseable! {
     And = |parser| {
-        parse!(parser, lhs = Or);
-        parse!(parser, rhs = Or);
-        Ok(Some(And(lhs.as_expr_kind(), rhs.as_expr_kind())))
+        parse_expr!(parser, lhs = Or);
+        parse_expr!(parser, rhs = Or);
+        Ok(Some(And(lhs, rhs)))
     }
 }
 
-// let_expr!(mut lhs = self.expr_logic_and()?);
+    // fn expr_logic_and(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
+    //     let_expr!(mut lhs = self.expr_cmp_equality()?);
 
-// while let Some(token_or) = self.next_if_eq(&&LexerTokenKind::Or) {
-//     let_expr!(rhs = self.expr_logic_and()?);
+    //     while let Some(token_and) = self.next_if_eq(&&LexerTokenKind::And) {
+    //         let_expr!(rhs = self.expr_cmp_equality()?);
 
-//     let operator: LogicalOperator = LogicalOperator::Or;
+    //         let operator: LogicalOperator = LogicalOperator::And;
 
-//     lhs = WithCursor::create_with(
-//         lhs.start,
-//         rhs.end,
-//         ExpressionKind::Logic(Box::from((
-//             lhs,
-//             WithCursor::create_with(token_or.start, token_or.end, operator),
-//             rhs,
-//         ))),
-//     );
-// }
+    //         lhs = WithCursor::create_with(
+    //             lhs.start,
+    //             rhs.end,
+    //             ExpressionKind::Logic(Box::from((
+    //                 lhs,
+    //                 WithCursor::create_with(token_and.start, token_and.end, operator),
+    //                 rhs,
+    //             ))),
+    //         );
+    //     }
 
-// Ok(Some(lhs))
+    //     Ok(Some(lhs))
+    // }

@@ -1,4 +1,4 @@
-use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::Expression};
+use crate::{as_stmt_kind, ast, ok_or_none, parseable, parser::expr::Expression};
 
 ast!(Variable(VariableMeta));
 as_stmt_kind!(Variable);
@@ -6,7 +6,7 @@ as_stmt_kind!(Variable);
 parseable! {
     Variable = |parser| {
         parser.expect_token(&LexerTokenKind::Var)?;
-        parse!(parser, value = VariableMeta);
+        let value = ok_or_none!(VariableMeta::parse(parser)?);
         parser.expect_terminator()?;
 
         Ok(Some(Variable(value)))

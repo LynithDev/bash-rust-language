@@ -67,24 +67,3 @@ impl Cursor {
         self.2
     } 
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WithCursor<T> {
-    pub value: T,
-    pub start: Cursor,
-    pub end: Cursor,
-}
-
-impl<T> WithCursor<T> {
-    pub fn create(value: T) -> Self {
-        Self::create_with(Cursor::create(), Cursor::create(), value)
-    }
-
-    pub fn create_with(start: Cursor, end: Cursor, value: T) -> Self {
-        Self {
-            start,
-            end,
-            value,
-        }
-    }
-}
