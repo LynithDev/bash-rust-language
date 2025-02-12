@@ -1,9 +1,9 @@
-use crate::{lexer::tokens::LexerTokenKind, parser::ParserErrorKind};
+use crate::{to_expr_kind, ast, lexer::tokens::LexerTokenKind, parser::ParserErrorKind};
 
 use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Arithmetic(pub Expression, pub ArithmeticOperator, pub Expression);
+ast!(Arithmetic(Expression, ArithmeticOperator, Expression));
+to_expr_kind!(Arithmetic);
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArithmeticOperator {

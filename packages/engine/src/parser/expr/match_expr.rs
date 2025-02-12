@@ -1,11 +1,11 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{as_expr, ast, parseable};
+use crate::{to_expr_kind, ast, parseable};
 
 use super::{literal::Literal, Expression};
 
 ast!(MatchExpr(Expression, HashMap<Literal, Rc<Expression>>));
-as_expr!(MatchExpr = Match);
+to_expr_kind!(MatchExpr = Match);
 
 parseable! {
     MatchExpr = |parser| {

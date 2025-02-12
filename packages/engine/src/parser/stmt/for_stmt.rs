@@ -1,9 +1,9 @@
-use crate::{as_stmt, ast, parse, parseable, parser::expr::{Block, Expression}};
+use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::{Block, Expression}};
 
 use super::variable_stmt::VariableMeta;
 
 ast!(For(VariableMeta, Expression, Block));
-as_stmt!(For);
+as_stmt_kind!(For);
 
 parseable! {
     For = |parser| {

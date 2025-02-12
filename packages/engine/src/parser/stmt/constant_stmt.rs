@@ -1,4 +1,6 @@
+use crate::{as_stmt_kind, ast};
+
 use super::variable_stmt::VariableMeta;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Constant(VariableMeta);
+ast!(Constant(VariableMeta));
+as_stmt_kind!(Constant);

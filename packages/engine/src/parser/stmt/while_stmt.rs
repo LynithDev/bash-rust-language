@@ -1,7 +1,7 @@
-use crate::{as_stmt, ast, parse, parseable, parser::expr::{Block, Expression}};
+use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::{Block, Expression}};
 
 ast!(While(Expression, Block));
-as_stmt!(While);
+as_stmt_kind!(While);
 
 parseable! {
     While = |parser| {

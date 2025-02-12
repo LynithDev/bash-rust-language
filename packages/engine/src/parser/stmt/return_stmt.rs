@@ -1,7 +1,7 @@
-use crate::{ast, as_stmt, parseable, parser::expr::Expression};
+use crate::{ast, as_stmt_kind, parseable, parser::expr::Expression};
 
 ast!(Return(Option<Expression>));
-as_stmt!(Return);
+as_stmt_kind!(Return);
 
 parseable! {
     Return = |parser| {

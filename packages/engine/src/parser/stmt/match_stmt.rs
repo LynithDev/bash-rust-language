@@ -1,7 +1,7 @@
-use crate::{as_stmt, ast, parse, parseable, parser::expr::MatchExpr};
+use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::MatchExpr};
 
 ast!(MatchStmt(MatchExpr));
-as_stmt!(MatchStmt = Match);
+as_stmt_kind!(MatchStmt = Match);
 
 parseable! {
     MatchStmt = |parser| {

@@ -135,25 +135,7 @@ impl<'a> Parser<'a> {
 
     // MARK: Logic OR
     fn expr_logic_or(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
-        let_expr!(mut lhs = self.expr_logic_and()?);
-
-        while let Some(token_or) = self.next_if_eq(&&LexerTokenKind::Or) {
-            let_expr!(rhs = self.expr_logic_and()?);
-
-            let operator: LogicalOperator = LogicalOperator::Or;
-
-            lhs = WithCursor::create_with(
-                lhs.start,
-                rhs.end,
-                ExpressionKind::Logic(Box::from((
-                    lhs,
-                    WithCursor::create_with(token_or.start, token_or.end, operator),
-                    rhs,
-                ))),
-            );
-        }
-
-        Ok(Some(lhs))
+        
     }
 
     // MARK: Logic AND

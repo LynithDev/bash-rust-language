@@ -1,7 +1,13 @@
-use crate::{lexer::tokens::LexerToken, parser::ParserErrorKind};
+use crate::{to_expr_kind, ast, lexer::tokens::LexerToken, parser::ParserErrorKind};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IntegerLiteral(isize);
+ast!(IntegerLiteral(isize));
+to_expr_kind!(IntegerLiteral = Integer);
+
+impl std::hash::Hash for IntegerLiteral {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
 
 impl TryFrom<LexerToken> for IntegerLiteral {
     type Error = ParserErrorKind;

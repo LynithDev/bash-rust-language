@@ -1,7 +1,7 @@
-use crate::{parse, ast, as_stmt, parseable, parser::expr::IfExpr};
+use crate::{parse, ast, as_stmt_kind, parseable, parser::expr::IfExpr};
 
 ast!(IfStmt(IfExpr));
-as_stmt!(IfStmt = If);
+as_stmt_kind!(IfStmt = If);
 
 parseable! {
     IfStmt = |parser| {

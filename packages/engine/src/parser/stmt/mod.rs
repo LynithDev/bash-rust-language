@@ -1,4 +1,5 @@
 pub use break_stmt::Break;
+use constant_stmt::Constant;
 pub use continue_stmt::Continue;
 pub use expression_stmt::ExpressionStmt;
 pub use for_stmt::For;
@@ -25,6 +26,7 @@ mod while_stmt;
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, PartialEq, Eq)]
 pub enum StatementKind {
+    Constant(Constant),
     While(While),
     For(For),
     Return(Return),

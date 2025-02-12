@@ -1,9 +1,9 @@
-use crate::{as_expr, ast, parseable};
+use crate::{to_expr_kind, ast, parseable};
 
 use super::{Expression, Identifier};
 
 ast!(FunctionCall(Identifier, Vec<Expression>));
-as_expr!(FunctionCall);
+to_expr_kind!(FunctionCall);
 
 parseable! {
     FunctionCall = |parser| {

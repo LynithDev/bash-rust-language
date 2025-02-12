@@ -1,7 +1,7 @@
-use crate::{as_expr, ast, parseable, parser::stmt::Statement};
+use crate::{to_expr_kind, ast, parseable, parser::stmt::Statement};
 
 ast!(Block(Vec<Statement>)); 
-as_expr!(Block);
+to_expr_kind!(Block);
 
 parseable! {
     Block = |parser| {

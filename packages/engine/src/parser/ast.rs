@@ -44,38 +44,38 @@ macro_rules! ast {
     };
 }
 
-pub trait ToExpression {
-    fn as_expr(self) -> ExpressionKind;
+pub trait ToExpressionKind {
+    fn as_expr_kind(self) -> ExpressionKind;
 }
 
 #[macro_export]
-macro_rules! as_expr {
+macro_rules! to_expr_kind {
     ($name:ident) => {
-        $crate::as_expr!($name = $name);
+        $crate::to_expr_kind!($name = $name);
     };
 
     ($name:ident = $kind:ident) => {
-        impl $crate::parser::ast::ToExpression for $name {
-            fn as_expr(self) -> $crate::parser::expr::ExpressionKind {
+        impl $crate::parser::ast::ToExpressionKind for $name {
+            fn as_expr_kind(self) -> $crate::parser::expr::ExpressionKind {
                 $crate::parser::expr::ExpressionKind::$kind(self)
             }
         }
     };
 }
 
-pub trait ToStatement {
-    fn as_stmt(self) -> StatementKind;
+pub trait ToStatementKind {
+    fn as_stmt_kind(self) -> StatementKind;
 }
 
 #[macro_export]
-macro_rules! as_stmt {
+macro_rules! as_stmt_kind {
     ($name:ident) => {
-        $crate::as_stmt!($name = $name);
+        $crate::as_stmt_kind!($name = $name);
     };
 
     ($name:ident = $kind:ident) => {
-        impl $crate::parser::ast::ToStatement for $name {
-            fn as_stmt(self) -> $crate::parser::stmt::StatementKind {
+        impl $crate::parser::ast::ToStatementKind for $name {
+            fn as_stmt_kind(self) -> $crate::parser::stmt::StatementKind {
                 $crate::parser::stmt::StatementKind::$kind(self)
             }
         }

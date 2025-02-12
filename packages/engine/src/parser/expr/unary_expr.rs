@@ -1,9 +1,9 @@
-use crate::{lexer::tokens::LexerTokenKind, parser::ParserErrorKind};
+use crate::{to_expr_kind, ast, lexer::tokens::LexerTokenKind, parser::ParserErrorKind};
 
 use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Unary(pub UnaryOperator, pub Expression);
+ast!(Unary(UnaryOperator, Expression));
+to_expr_kind!(Unary);
 
 #[derive(lang_macro::EnumVariants, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOperator {

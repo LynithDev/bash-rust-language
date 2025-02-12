@@ -1,4 +1,4 @@
-use crate::parser::expr::Expression;
+use crate::{as_stmt_kind, ast, parser::expr::Expression};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExpressionStmt(Expression);
+ast!(ExpressionStmt(Expression));
+as_stmt_kind!(ExpressionStmt = Expression);

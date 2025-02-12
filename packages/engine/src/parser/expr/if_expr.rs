@@ -1,9 +1,9 @@
-use crate::{as_expr, ast, parse, parseable};
+use crate::{to_expr_kind, ast, parse, parseable};
 
 use super::{Block, Expression};
 
 ast!(IfExpr(Expression, Block, Option<Expression>));
-as_expr!(IfExpr = If);
+to_expr_kind!(IfExpr = If);
 
 parseable! {
     IfExpr = |parser| {

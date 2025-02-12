@@ -1,2 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ShellCommand(pub String, pub Option<String>);
+use crate::{to_expr_kind, ast};
+
+ast!(ShellCommand(String, Option<String>));
+to_expr_kind!(ShellCommand);

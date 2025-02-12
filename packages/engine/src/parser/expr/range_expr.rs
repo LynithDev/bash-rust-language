@@ -1,4 +1,6 @@
+use crate::{to_expr_kind, ast};
+
 use super::Expression;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Range(pub Expression, pub Expression, pub bool);
+ast!(Range(Expression, Expression, bool));
+to_expr_kind!(Range);

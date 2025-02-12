@@ -1,9 +1,9 @@
-use crate::{as_expr, ast, lexer::tokens::LexerTokenKind, parseable, parser::{expr::Identifier, ParserErrorKind}};
+use crate::{to_expr_kind, ast, lexer::tokens::LexerTokenKind, parseable, parser::{expr::Identifier, ParserErrorKind}};
 
 use super::Expression;
 
 ast!(Assignment(Expression, AssignmentOperator, Expression));
-as_expr!(Assignment);
+to_expr_kind!(Assignment);
 
 parseable! {
     Assignment = |parser| {

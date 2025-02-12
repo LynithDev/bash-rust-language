@@ -1,9 +1,9 @@
-use crate::{as_expr, ast, parseable};
+use crate::{to_expr_kind, ast, parseable};
 
 use super::Expression;
 
 ast!(Group(Expression));
-as_expr!(Group);
+to_expr_kind!(Group);
 
 parseable! {
     Group = |parser| {

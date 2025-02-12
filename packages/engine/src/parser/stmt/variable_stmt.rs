@@ -1,7 +1,7 @@
-use crate::{as_stmt, ast, parse, parseable, parser::expr::Expression};
+use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::Expression};
 
 ast!(Variable(VariableMeta));
-as_stmt!(Variable);
+as_stmt_kind!(Variable);
 
 parseable! {
     Variable = |parser| {

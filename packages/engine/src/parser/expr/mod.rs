@@ -12,8 +12,10 @@ mod shell_command_expr;
 mod unary_expr;
 mod identifier;
 
+use bin_op::and_op::And;
+pub use bin_op::or_op::Or;
 pub use identifier::Identifier;
-use literal::{boolean::BooleanLiteral, integer::IntegerLiteral, string::StringLiteral};
+pub use literal::{boolean::BooleanLiteral, integer::IntegerLiteral, string::StringLiteral};
 pub use literal::Literal;
 pub use arithmetic_expr::Arithmetic;
 pub use assignment_expr::Assignment;
@@ -34,6 +36,10 @@ pub enum ExpressionKind {
     String(StringLiteral),
     Integer(IntegerLiteral),
     Boolean(BooleanLiteral),
+
+    Or(Or),
+    And(And),
+
     Group(Group),
     Unary(Unary),
     Arithmetic(Arithmetic),

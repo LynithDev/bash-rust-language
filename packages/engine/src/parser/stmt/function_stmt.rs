@@ -1,4 +1,4 @@
-use crate::{as_stmt, ast, parse, parseable, parser::expr::Block};
+use crate::{as_stmt_kind, ast, parse, parseable, parser::expr::Block};
 
 use super::variable_stmt::VariableMeta;
 
@@ -8,7 +8,7 @@ ast!(Function {
     strict_type: Option<String>,
     body: Block,
 });
-as_stmt!(Function);
+as_stmt_kind!(Function);
 
 parseable! {
     Function = |parser| {
