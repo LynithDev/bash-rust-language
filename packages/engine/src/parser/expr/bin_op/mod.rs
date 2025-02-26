@@ -4,6 +4,7 @@ use super::Expression;
 
 pub mod or_op;
 pub mod and_op;
+pub mod cmp_eq_or;
 
 pub trait BinOp<T> {
     fn parse_left(parser: &mut Parser) -> ParserResult<Option<Expression>>;
@@ -26,6 +27,16 @@ macro_rules! parse_bin_op {
                 use $crate::{component::ComponentIter, lexer::tokens::LexerTokenKind, parser::{expr::ExpressionKind, stmt::StatementKind, ParserErrorKind}};
                 
                 $parse_right
+            }
+        }
+
+        $crate::parseable! {
+            $name = |parser| {
+                use $crate::parser::expr::bin_op::BinOp;
+                let lhs = $crate::ok_or_none!($name::parse_left(parser)?);
+                let rhs = $crate::ok_or_none!($name::parse_right(parser)?);
+                
+                Ok(Some($name(lhs, rhs)))
             }
         }
     };

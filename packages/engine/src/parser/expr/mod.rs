@@ -12,7 +12,7 @@ mod expr_shell_command;
 mod expr_unary;
 mod expr_identifier;
 
-use bin_op::and_op::And;
+pub use bin_op::and_op::And;
 pub use bin_op::or_op::Or;
 pub use expr_identifier::Identifier;
 pub use literal::{boolean::BooleanLiteral, integer::IntegerLiteral, string::StringLiteral};

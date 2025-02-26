@@ -1,8 +1,8 @@
 use std::{iter::Peekable, slice::Iter};
 
-use ast::ProgramTree;
+use ast::{Parse, ProgramTree};
 use error::ParserResult;
-use expr::Expression;
+use expr::*;
 use stmt::Statement;
 
 use crate::{
@@ -29,6 +29,21 @@ pub struct Parser<'a> {
 
     #[cfg(feature = "cli")]
     source: crate::error::SourceFile,
+}
+
+macro_rules! parse_expr {
+    ($parser:expr, $name:ty) => {{
+        let start = $parser.cursor;
+        let kind = $crate::ok_or_none!(<$name>::parse($parser)?);
+        let end = $parser.cursor;
+        
+        let kind = {
+            use $crate::parser::ast::ToExpressionKind;
+            kind.as_expr_kind()
+        };
+
+        $crate::parser::expr::Expression::new(start, kind, end)
+    }};
 }
 
 impl<'a> Parser<'a> {
@@ -114,15 +129,22 @@ impl<'a> Parser<'a> {
         todo!()
     }
 
-    // // MARK: Assignment
+    // MARK: Assignment
     // fn expr_assignment(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
         
     // }
 
-    // // MARK: Logic OR
-    // fn expr_logic_or(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {
-        
-    // }
+    fn expr_logic_or(&mut self) -> ParserResult<Option<Expression>> {
+        Ok(Some(parse_expr!(self, Or)))
+    }
+
+    fn expr_logic_and(&mut self) -> ParserResult<Option<Expression>> {
+        Ok(Some(parse_expr!(self, And)))
+    }
+
+    fn expr_cmp_equality(&mut self) -> ParserResult<Option<Expression>> {
+        Ok(Some(parse_expr!(self, CmpEquality)))
+    }
 
     // // MARK: Logic AND
     // fn expr_logic_and(&mut self) -> ParserResult<Option<WithCursor<ExpressionKind>>> {

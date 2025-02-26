@@ -21,22 +21,6 @@ macro_rules! parseable {
 }
 
 #[macro_export]
-macro_rules! parse_expr {
-    ($parser:expr, $expr:ident = $name:ty) => {
-        let start = $parser.cursor;
-        let kind = $crate::ok_or_none!(<$name>::parse($parser)?);
-        let end = $parser.cursor;
-        
-        let kind = {
-            use $crate::parser::ast::ToExpressionKind;
-            kind.as_expr_kind()
-        };
-
-        let $expr = $crate::parser::expr::Expression::new(start, kind, end);
-    };
-}
-
-#[macro_export]
 macro_rules! ast {
     ($name:ident { $($param_k:ident: $param_v:ty),* $(,)* }) => {
         #[derive(Debug, Clone, PartialEq, Eq)]
